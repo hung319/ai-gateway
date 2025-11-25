@@ -1,15 +1,13 @@
-import secrets
-from fastapi import FastAPI, Response, Request, Depends, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+from fastapi import FastAPI
+from fastapi.responses import HTMLResponse, RedirectResponse
 from contextlib import asynccontextmanager
 from sqlmodel import Session
-from pydantic import BaseModel
 
-from app.database import create_db_and_tables, init_redis, close_redis, engine, get_session
-from app.models import GatewayKey, AdminSession
-from app.config import MASTER_KEY, MASTER_TRACKER_ID
+from app.database import create_db_and_tables, init_redis, close_redis, engine
+from app.models import GatewayKey
+from app.config import MASTER_TRACKER_ID
 from app.routers import admin, gateway
-from app.security import create_session
+from app.engine import ai_engine
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -18,52 +16,25 @@ async def lifespan(app: FastAPI):
         if not session.get(GatewayKey, MASTER_TRACKER_ID):
             session.add(GatewayKey(key=MASTER_TRACKER_ID, name="👑 ADMIN TRACKER", usage_count=0, is_hidden=True))
             session.commit()
+        
+        # Init AI Engine
+        ai_engine.initialize(session)
+    
     await init_redis()
     yield
     await close_redis()
 
-app = FastAPI(lifespan=lifespan, title="AI Gateway v3.4 Secure")
+app = FastAPI(lifespan=lifespan, title="AI Gateway Enterprise")
 
 app.include_router(admin.router)
 app.include_router(gateway.router)
 
-# --- AUTH ROUTES ---
-class LoginRequest(BaseModel):
-    master_key: str
-
-@app.post("/api/auth/login")
-async def login(data: LoginRequest, response: Response, session: Session = Depends(get_session)):
-    if secrets.compare_digest(data.master_key, MASTER_KEY):
-        token = create_session(session)
-        
-        # CẤU HÌNH QUAN TRỌNG CHO DOCKER/LOCALHOST:
-        # secure=False: Để chạy được trên HTTP
-        # samesite="lax": Để trình duyệt chấp nhận cookie dễ hơn
-        response.set_cookie(
-            key="gateway_session", 
-            value=token, 
-            httponly=True,  # JS không đọc được (Bảo mật)
-            max_age=7*24*60*60, 
-            secure=False,   # <--- SỬA THÀNH FALSE NẾU CHẠY LOCAL/DOCKER
-            samesite="lax"
-        )
-        return {"status": "ok"}
-    else:
-        raise HTTPException(status_code=401, detail="Invalid Master Key")
-
-@app.post("/api/auth/logout")
-async def logout(response: Response):
-    response.delete_cookie("gateway_session")
-    return {"status": "ok"}
-
-# --- FRONTEND ---
 @app.get("/", include_in_schema=False)
 async def root(): return RedirectResponse(url="/panel")
 
 @app.get("/panel", response_class=HTMLResponse, include_in_schema=False)
 async def panel():
-    with open("app/templates/panel.html", "r", encoding="utf-8") as f:
-        return f.read()
+    with open("app/templates/panel.html", "r", encoding="utf-8") as f: return f.read()
 
 if __name__ == "__main__":
     import uvicorn
