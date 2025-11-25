@@ -127,135 +127,220 @@ async def fetch_provider_models(client: httpx.AsyncClient, provider: Provider):
         "permission": []
     } for m_id in fetched_ids]
 
-# --- 6. FRONTEND (UPDATED: HYBRID CSS) ---
+# --- 6. FRONTEND (NATIVE CSS - NO TAILWIND DEPENDENCY) ---
 html_panel = """
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>AI Gateway Panel</title>
+    <title>AI Gateway Admin</title>
     
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f3f4f6; margin: 0; padding-bottom: 80px; }
+        /* --- RESET & BASE --- */
+        :root {
+            --primary: #4f46e5; /* Indigo 600 */
+            --primary-hover: #4338ca;
+            --danger: #ef4444;
+            --success: #10b981;
+            --bg: #f3f4f6;
+            --card-bg: #ffffff;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --border: #e5e7eb;
+        }
         
-        /* Utility Classes giả lập Tailwind (đề phòng CDN chết) */
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            padding-bottom: 50px;
+            font-size: 16px; /* Chuẩn mobile */
+        }
+
+        /* --- UTILS --- */
         .hidden { display: none !important; }
-        .fixed { position: fixed; }
-        .inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
-        .z-50 { z-index: 50; }
-        .flex { display: flex; }
-        .items-center { align-items: center; }
-        .justify-center { justify-content: center; }
-        .w-full { width: 100%; }
-        .h-full { height: 100%; }
+        .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+        .flex { display: flex; align-items: center; }
+        .justify-between { justify-content: space-between; }
+        .gap-2 { gap: 0.5rem; }
+        .mt-4 { margin-top: 1rem; }
+        .text-xs { font-size: 0.75rem; }
+        .font-bold { font-weight: 700; }
+        .uppercase { text-transform: uppercase; }
+
+        /* --- COMPONENTS --- */
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--border);
+        }
+        h1 { margin: 0; font-size: 1.5rem; color: var(--primary); }
+        .logout-btn { color: var(--danger); text-decoration: none; font-size: 0.9rem; border: none; background: none; cursor: pointer; }
+
+        /* Card */
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border);
+        }
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Forms */
+        .form-group { margin-bottom: 12px; }
+        label { display: block; font-size: 0.75rem; font-weight: bold; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px; }
         
-        /* Custom UI */
-        .login-overlay { background-color: rgba(17, 24, 39, 0.95); }
-        .card { background: white; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); padding: 20px; margin-bottom: 20px; border: 1px solid #e5e7eb; }
-        .card-header { font-weight: bold; font-size: 1.125rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
-        
-        /* Inputs & Buttons */
         input, select {
             width: 100%;
-            padding: 12px;
-            margin-top: 4px;
-            border: 1px solid #d1d5db;
-            border-radius: 8px;
-            font-size: 16px; /* Chặn zoom iOS */
-            box-sizing: border-box;
-            background-color: #fff;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 16px; /* iOS không zoom */
+            background: #fff;
+            transition: border 0.2s;
         }
-        input:focus, select:focus { outline: 2px solid #4f46e5; border-color: transparent; }
-        
-        .btn { width: 100%; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; transition: 0.2s; margin-top: 10px; }
-        .btn-primary { background-color: #4f46e5; color: white; }
-        .btn-primary:hover { background-color: #4338ca; }
-        
-        .btn-green { background-color: #059669; color: white; }
-        .btn-green:hover { background-color: #047857; }
-        
-        .btn-icon { background: none; border: none; cursor: pointer; padding: 8px; }
-        .text-red { color: #ef4444; }
-        
-        /* List Items */
-        .list-item { background-color: #f9fafb; padding: 12px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border: 1px solid #e5e7eb; }
-        .list-title { font-weight: 700; color: #312e81; }
-        .list-sub { font-size: 0.75rem; color: #6b7280; }
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
 
-        /* Container */
-        .container-custom { max-width: 800px; margin: 0 auto; padding: 20px; }
-        .header-custom { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+            transition: background 0.2s;
+        }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-green { background: var(--success); color: white; width: auto; }
+        
+        .btn-icon {
+            background: none; border: none; padding: 5px; cursor: pointer; color: var(--text-muted);
+        }
+        .btn-icon:hover { color: var(--danger); }
+
+        /* List Items */
+        .list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f9fafb;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin-bottom: 8px;
+        }
+        .item-main { font-weight: 600; color: #111827; }
+        .item-sub { font-size: 0.8rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px; }
+
+        /* Table */
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        td { padding: 10px; border-bottom: 1px solid var(--border); }
+        .key-copy { 
+            font-family: monospace; color: var(--primary); cursor: pointer; background: #eef2ff; padding: 2px 6px; border-radius: 4px;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 1000;
+        }
+        .modal-box {
+            background: white; padding: 30px; border-radius: 16px; width: 90%; max-width: 350px; text-align: center;
+        }
     </style>
 </head>
 <body>
 
-    <div id="loginModal" class="fixed inset-0 login-overlay z-50 flex items-center justify-center p-4 hidden">
-        <div class="card w-full max-w-sm" style="text-align: center;">
-            <div style="font-size: 3rem; color: #4f46e5; margin-bottom: 1rem;"><i class="fa-solid fa-shield-cat"></i></div>
-            <h2 style="font-size: 1.5rem; font-weight: bold; margin-bottom: 0.5rem;">Gateway Login</h2>
-            <p style="color: #6b7280; margin-bottom: 1.5rem;">Nhập Master Key</p>
+    <div id="loginModal" class="modal-overlay hidden">
+        <div class="modal-box">
+            <div style="font-size: 40px; color: var(--primary); margin-bottom: 10px;"><i class="fa-solid fa-shield-cat"></i></div>
+            <h2 style="font-size: 20px; font-weight: bold;">Admin Login</h2>
+            <p style="color: #666; margin-bottom: 20px; font-size: 14px;">Nhập MASTER_KEY của server</p>
             <form id="loginForm">
-                <input type="password" id="masterKeyInput" placeholder="sk-..." required style="text-align: center;">
-                <button type="submit" class="btn btn-primary">Truy cập Panel</button>
+                <input type="password" id="masterKeyInput" placeholder="sk-..." required style="text-align: center; margin-bottom: 15px;">
+                <button type="submit" class="btn btn-primary">Đăng Nhập</button>
             </form>
         </div>
     </div>
 
-    <div id="appContent" class="container-custom hidden">
-        <header class="header-custom">
-            <h1 style="font-size: 1.5rem; font-weight: bold; color: #374151; display: flex; align-items: center; gap: 10px;">
-                <i class="fa-solid fa-network-wired" style="color: #4f46e5;"></i> AI Gateway
-            </h1>
-            <button onclick="logout()" style="background: none; border: none; color: #6b7280; cursor: pointer;">
-                <i class="fa-solid fa-right-from-bracket"></i> Thoát
-            </button>
+    <div id="appContent" class="container hidden">
+        <header>
+            <h1><i class="fa-solid fa-layer-group"></i> AI Gateway</h1>
+            <button onclick="logout()" class="logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Thoát</button>
         </header>
 
-        <div class="card" style="border-top: 4px solid #4f46e5;">
-            <div class="card-header" style="color: #4338ca;">
-                <i class="fa-solid fa-server"></i> Thêm Provider
+        <div class="card" style="border-top: 4px solid var(--primary);">
+            <div class="card-title" style="color: var(--primary);">
+                <i class="fa-solid fa-server"></i> Cấu hình Provider
             </div>
             <form id="providerForm">
-                <div style="margin-bottom: 10px;">
-                    <label style="font-size: 0.75rem; font-weight: bold; color: #6b7280; text-transform: uppercase;">Alias (Tên ngắn)</label>
-                    <input type="text" id="p_name" placeholder="vd: local, gpt" required>
+                <div class="form-group">
+                    <label>Alias (Tên ngắn gọi API)</label>
+                    <input type="text" id="p_name" placeholder="Ví dụ: gpt, local, deepseek" required>
                 </div>
-                <div style="margin-bottom: 10px;">
-                    <label style="font-size: 0.75rem; font-weight: bold; color: #6b7280; text-transform: uppercase;">Loại API</label>
+                <div class="form-group">
+                    <label>Loại API</label>
                     <select id="p_type" required>
-                        <option value="openai">OpenAI Standard (Official/Compatible)</option>
+                        <option value="openai">OpenAI Standard (Khuyên dùng)</option>
                         <option value="azure">Azure OpenAI</option>
                     </select>
                 </div>
-                <div style="margin-bottom: 10px;">
-                    <label style="font-size: 0.75rem; font-weight: bold; color: #6b7280; text-transform: uppercase;">Base URL (Tùy chọn)</label>
-                    <input type="text" id="p_base" placeholder="http://host.docker.internal:11434">
+                <div class="form-group">
+                    <label>Base URL (Bắt buộc cho Local/Ollama)</label>
+                    <input type="text" id="p_base" placeholder="http://localhost:11434">
+                    <p class="text-xs" style="color: #888; margin-top: 4px;">* OpenAI Official thì để trống.</p>
                 </div>
-                <div style="margin-bottom: 10px;">
-                    <label style="font-size: 0.75rem; font-weight: bold; color: #6b7280; text-transform: uppercase;">API Key</label>
+                <div class="form-group">
+                    <label>API Key</label>
                     <input type="password" id="p_key" placeholder="sk-...">
                 </div>
-                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Lưu Provider</button>
+                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save"></i> Lưu Cấu Hình</button>
             </form>
             
-            <div id="providerList" style="margin-top: 20px;"></div>
+            <div id="providerList" class="mt-4"></div>
         </div>
 
-        <div class="card" style="border-top: 4px solid #059669;">
-            <div class="card-header" style="color: #047857;">
-                <i class="fa-solid fa-key"></i> Tạo Client Key
+        <div class="card" style="border-top: 4px solid var(--success);">
+            <div class="card-title" style="color: var(--success);">
+                <i class="fa-solid fa-key"></i> Tạo Key cho Ứng dụng
             </div>
             <form id="keyForm" style="display: flex; gap: 10px; margin-bottom: 15px;">
-                <input type="text" id="k_name" placeholder="Tên App (vd: Cursor)" required style="margin-top: 0;">
-                <button type="submit" class="btn btn-green" style="margin-top: 0; width: auto; padding: 0 20px;">+ Tạo</button>
+                <input type="text" id="k_name" placeholder="Tên App (VD: Cursor, Web)" required style="margin-bottom: 0;">
+                <button type="submit" class="btn btn-green"><i class="fa-solid fa-plus"></i></button>
             </form>
+            
             <div style="overflow-x: auto;">
-                <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
+                <table>
                     <tbody id="keyList"></tbody>
                 </table>
             </div>
@@ -266,7 +351,6 @@ html_panel = """
         const MASTER_KEY_KEY = 'gw_master_key_v2';
         let currentKey = localStorage.getItem(MASTER_KEY_KEY);
 
-        // --- AUTH ---
         function checkAuth() {
             if (!currentKey) {
                 document.getElementById('loginModal').classList.remove('hidden');
@@ -277,6 +361,7 @@ html_panel = """
                 initApp();
             }
         }
+
         document.getElementById('loginForm').onsubmit = (e) => {
             e.preventDefault();
             const val = document.getElementById('masterKeyInput').value.trim();
@@ -284,7 +369,6 @@ html_panel = """
         }
         function logout() { localStorage.removeItem(MASTER_KEY_KEY); location.reload(); }
 
-        // --- API ---
         async function api(path, method='GET', body=null) {
             const opts = { method, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentKey}` }};
             if(body) opts.body = JSON.stringify(body);
@@ -292,10 +376,9 @@ html_panel = """
                 const res = await fetch(path, opts);
                 if(res.status === 401 || res.status === 403) { logout(); return null; }
                 return res.json();
-            } catch(e) { alert("Lỗi kết nối!"); return null; }
+            } catch(e) { alert("Lỗi kết nối server!"); return null; }
         }
 
-        // --- LOGIC ---
         async function loadData() {
             const [providers, keys] = await Promise.all([api('/api/admin/providers'), api('/api/admin/keys')]);
             
@@ -303,19 +386,19 @@ html_panel = """
                 document.getElementById('providerList').innerHTML = providers.map(p => `
                     <div class="list-item">
                         <div>
-                            <div class="list-title">${p.name}</div>
-                            <div class="list-sub">${p.base_url || 'Default OpenAI'}</div>
+                            <div class="item-main">${p.name}</div>
+                            <div class="item-sub">${p.base_url || 'OpenAI Official'}</div>
                         </div>
-                        <button onclick="delProvider('${p.name}')" class="btn-icon text-red"><i class="fa-solid fa-trash"></i></button>
+                        <button onclick="delProvider('${p.name}')" class="btn-icon"><i class="fa-solid fa-trash"></i></button>
                     </div>
                 `).join('');
             }
             if(keys) {
                 document.getElementById('keyList').innerHTML = keys.map(k => `
-                    <tr style="border-bottom: 1px solid #f3f4f6;">
-                        <td style="padding: 10px; font-weight: 500;">${k.name}</td>
-                        <td style="padding: 10px; color: #2563eb; font-family: monospace; cursor: pointer;" onclick="copy('${k.key}')">Copy Key</td>
-                        <td style="padding: 10px; text-align: right;"><button onclick="delKey('${k.key}')" class="btn-icon text-red"><i class="fa-solid fa-trash"></i></button></td>
+                    <tr>
+                        <td><b>${k.name}</b></td>
+                        <td style="text-align:center;"><span class="key-copy" onclick="copy('${k.key}')">COPY KEY</span></td>
+                        <td style="text-align:right;"><button onclick="delKey('${k.key}')" class="btn-icon" style="color:#ef4444;"><i class="fa-solid fa-trash"></i></button></td>
                     </tr>
                 `).join('');
             }
@@ -335,12 +418,12 @@ html_panel = """
         document.getElementById('keyForm').onsubmit = async (e) => {
             e.preventDefault();
             const res = await api('/api/admin/keys', 'POST', { name: document.getElementById('k_name').value });
-            if(res) { prompt("Copy Client Key:", res.key); e.target.reset(); loadData(); }
+            if(res) { prompt("Copy Client Key của bạn:", res.key); e.target.reset(); loadData(); }
         };
 
-        async function delProvider(n) { if(confirm('Xóa?')) { await api(`/api/admin/providers/${n}`, 'DELETE'); loadData(); }}
-        async function delKey(k) { if(confirm('Xóa?')) { await api(`/api/admin/keys/${k}`, 'DELETE'); loadData(); }}
-        function copy(t) { navigator.clipboard.writeText(t); alert("Đã copy!"); }
+        async function delProvider(n) { if(confirm('Xóa Provider này?')) { await api(`/api/admin/providers/${n}`, 'DELETE'); loadData(); }}
+        async function delKey(k) { if(confirm('Thu hồi Key này?')) { await api(`/api/admin/keys/${k}`, 'DELETE'); loadData(); }}
+        function copy(t) { navigator.clipboard.writeText(t); alert("Đã copy vào clipboard!"); }
         function initApp() { loadData(); }
 
         checkAuth();
