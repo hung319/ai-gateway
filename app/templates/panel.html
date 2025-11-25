@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Gateway Admin</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        /* --- CSS VARIABLES (THEMING) --- */
+        :root {
+            --bg-body: #f8fafc;
+            --bg-card: #ffffff;
+            --text-main: #1e293b;
+            --text-sub: #64748b;
+            --border: #e2e8f0;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg-hover: #f1f5f9;
+            --modal-overlay: rgba(0,0,0,0.5);
+            --input-bg: #ffffff;
+        }
+
+        /* Dark Mode Override */
+        html.dark {
+            --bg-body: #0f172a;
+            --bg-card: #1e293b;
+            --text-main: #f1f5f9;
+            --text-sub: #94a3b8;
+            --border: #334155;
+            --primary: #3b82f6;
+            --primary-hover: #60a5fa;
+            --bg-hover: #334155;
+            --modal-overlay: rgba(0,0,0,0.8);
+            --input-bg: #334155;
+        }
+
+        /* --- GLOBAL STYLES --- */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg-body);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            transition: background 0.3s, color 0.3s;
+            font-size: 16px;
+        }
+
+        * { box-sizing: border-box; }
+        .hidden { display: none !important; }
+        .container { max-width: 800px; margin: 0 auto; }
+
+        /* --- HEADER --- */
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        h1 { margin: 0; font-size: 1.5rem; color: var(--primary); display: flex; align-items: center; gap: 10px; }
+        
+        .icon-btn {
+            background: none;
+            border: none;
+            color: var(--text-sub);
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 5px;
+            margin-left: 10px;
+            transition: color 0.2s;
+        }
+        .icon-btn:hover { color: var(--primary); }
+        .icon-btn.danger:hover { color: #ef4444; }
+
+        /* --- TABS --- */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 10px;
+        }
+        .tab-btn {
+            background: none;
+            border: none;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-sub);
+            padding: 8px 16px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: 0.2s;
+        }
+        .tab-btn:hover { background: var(--bg-hover); }
+        .tab-btn.active { background: var(--primary); color: white; }
+
+        /* --- CARDS --- */
+        .card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .card h3 { margin-top: 0; margin-bottom: 20px; color: var(--text-main); font-size: 1.1rem; display: flex; align-items: center; gap: 10px; }
+
+        /* --- FORMS --- */
+        label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-sub);
+            text-transform: uppercase;
+            margin-bottom: 5px;
+            margin-top: 15px;
+        }
+        label:first-child { margin-top: 0; }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--input-bg);
+            color: var(--text-main);
+            font-size: 1rem;
+            outline: none;
+            transition: border 0.2s;
+        }
+        input:focus, select:focus { border-color: var(--primary); }
+
+        /* --- BUTTONS --- */
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 20px;
+            color: white;
+            transition: opacity 0.2s;
+        }
+        .btn:active { opacity: 0.8; }
+        .btn-primary { background: var(--primary); }
+        .btn-success { background: #10b981; }
+        
+        /* --- LISTS & TABLES --- */
+        .list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+        .list-item:last-child { border-bottom: none; }
+        
+        .item-title { font-weight: bold; font-size: 1rem; color: var(--text-main); }
+        .item-sub { font-size: 0.85rem; color: var(--text-sub); }
+        
+        .badge {
+            background: var(--bg-hover);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            cursor: pointer;
+            border: 1px solid var(--border);
+        }
+        .badge-master { background: #fffbeb; color: #d97706; border-color: #fcd34d; }
+
+        .btn-sm-danger {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        /* --- MODAL --- */
+        .modal {
+            position: fixed; inset: 0;
+            background: var(--modal-overlay);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 100;
+            backdrop-filter: blur(3px);
+        }
+        .modal-content {
+            background: var(--bg-card);
+            padding: 40px;
+            border-radius: 16px;
+            width: 90%; max-width: 400px;
+            text-align: center;
+            border: 1px solid var(--border);
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loginModal" class="modal hidden">
+        <div class="modal-content">
+            <h2 style="margin-top:0; color:var(--text-main)">🔒 Admin Login</h2>
+            <p style="color:var(--text-sub); margin-bottom:20px">Nhập Master Key để truy cập quản trị</p>
+            <form id="loginForm">
+                <input type="password" id="masterKeyInput" placeholder="sk-..." style="text-align:center; margin-bottom: 0;" required>
+                <button type="submit" class="btn btn-primary">Đăng Nhập</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="app" class="container hidden">
+        <div class="header-row">
+            <h1><i class="fa-solid fa-layer-group"></i> AI Gateway</h1>
+            <div>
+                <button class="icon-btn" onclick="toggleTheme()" title="Switch Theme">
+                    <i class="fa-solid fa-circle-half-stroke"></i>
+                </button>
+                <button class="icon-btn danger" onclick="logout()" title="Logout">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('config')" id="tab-config">
+                <i class="fa-solid fa-gears"></i> Cấu Hình
+            </button>
+            <button class="tab-btn" onclick="switchTab('stats')" id="tab-stats">
+                <i class="fa-solid fa-chart-pie"></i> Thống Kê
+            </button>
+        </div>
+
+        <div id="view-config">
+            <div class="card" style="border-top: 4px solid var(--primary)">
+                <h3><i class="fa-solid fa-server"></i> Thêm Provider</h3>
+                <form id="providerForm">
+                    <label>Alias (Tên ngắn)</label>
+                    <input type="text" id="p_name" placeholder="vd: google, gpt, open" required>
+                    
+                    <label>Loại API</label>
+                    <select id="p_type" onchange="autoFillUrl()">
+                        <option value="openai">OpenAI Standard</option>
+                        <option value="gemini">Google Gemini (AI Studio)</option>
+                        <option value="openrouter">OpenRouter</option>
+                        <option value="azure">Azure OpenAI</option>
+                    </select>
+                    
+                    <label>Base URL</label>
+                    <input type="text" id="p_base" placeholder="Để trống nếu dùng mặc định">
+                    
+                    <label>API Key</label>
+                    <input type="password" id="p_key" placeholder="sk-..." required>
+                    
+                    <button class="btn btn-primary">Lưu Provider</button>
+                </form>
+                
+                <div id="providerList" style="margin-top: 20px; border-top: 1px solid var(--border)"></div>
+            </div>
+
+            <div class="card" style="border-top: 4px solid #10b981">
+                <h3><i class="fa-solid fa-key"></i> Tạo Key Client</h3>
+                <form id="keyForm">
+                    <label>Tên Ứng Dụng</label>
+                    <input type="text" id="k_name" placeholder="vd: Cursor IDE" required>
+                    
+                    <label>Custom Key (Tùy chọn)</label>
+                    <input type="text" id="k_custom" placeholder="Để trống sẽ tự sinh ngẫu nhiên">
+                    
+                    <button class="btn btn-success">Tạo Key Mới</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="view-stats" class="hidden">
+            <div class="card">
+                <h3><i class="fa-solid fa-list-ol"></i> Danh sách Key & Lượt dùng</h3>
+                <div id="keyList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const AUTH_KEY = 'gateway_master_key_v3';
+        let currentToken = localStorage.getItem(AUTH_KEY);
+
+        // --- THEME MANAGER ---
+        function initTheme() {
+            const theme = localStorage.getItem('theme');
+            if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            }
+        }
+        function toggleTheme() {
+            document.documentElement.classList.toggle('dark');
+            localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+        }
+        initTheme();
+
+        // --- UI LOGIC ---
+        function autoFillUrl() {
+            const type = document.getElementById('p_type').value;
+            const baseInput = document.getElementById('p_base');
+            if (type === 'openrouter') baseInput.value = 'https://openrouter.ai/api/v1';
+            else if (type === 'gemini' || type === 'openai') baseInput.value = '';
+        }
+
+        function switchTab(tabName) {
+            // Reset Active State
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('view-config').classList.add('hidden');
+            document.getElementById('view-stats').classList.add('hidden');
+            
+            // Set Active
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+            document.getElementById(`view-${tabName}`).classList.remove('hidden');
+            
+            // Reload data if needed
+            if (tabName === 'stats') loadKeys();
+            if (tabName === 'config') loadProviders();
+        }
+
+        // --- AUTH LOGIC ---
+        function checkAuth() {
+            if (!currentToken) {
+                document.getElementById('loginModal').classList.remove('hidden');
+                document.getElementById('app').classList.add('hidden');
+            } else {
+                document.getElementById('loginModal').classList.add('hidden');
+                document.getElementById('app').classList.remove('hidden');
+                loadProviders();
+            }
+        }
+
+        document.getElementById('loginForm').onsubmit = (e) => {
+            e.preventDefault();
+            const val = document.getElementById('masterKeyInput').value.trim();
+            if (val) {
+                localStorage.setItem(AUTH_KEY, val);
+                currentToken = val;
+                checkAuth();
+            }
+        };
+
+        function logout() {
+            localStorage.removeItem(AUTH_KEY);
+            location.reload();
+        }
+
+        // --- API CLIENT ---
+        async function apiCall(endpoint, method = 'GET', body = null) {
+            const options = {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${currentToken}`
+                }
+            };
+            if (body) options.body = JSON.stringify(body);
+
+            try {
+                const res = await fetch(endpoint, options);
+                if (res.status === 401 || res.status === 403) {
+                    alert("Phiên đăng nhập hết hạn hoặc Key sai.");
+                    logout();
+                    return null;
+                }
+                if (!res.ok) {
+                    const err = await res.json();
+                    alert(err.detail || "Có lỗi xảy ra");
+                    return null;
+                }
+                return await res.json();
+            } catch (e) {
+                alert("Lỗi kết nối Server!");
+                return null;
+            }
+        }
+
+        // --- DATA LOADERS ---
+        async function loadProviders() {
+            const providers = await apiCall('/api/admin/providers');
+            if (providers) {
+                const html = providers.map(p => `
+                    <div class="list-item">
+                        <div>
+                            <div class="item-title">${p.name}</div>
+                            <div class="item-sub">
+                                <span style="background:var(--border); padding:2px 5px; border-radius:4px;">${p.provider_type}</span>
+                                ${p.base_url || 'Default URL'}
+                            </div>
+                        </div>
+                        <button class="btn-sm-danger" onclick="deleteProvider('${p.name}')">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                `).join('');
+                document.getElementById('providerList').innerHTML = html || '<p style="color:var(--text-sub); text-align:center">Chưa có Provider nào.</p>';
+            }
+        }
+
+        async function loadKeys() {
+            const keys = await apiCall('/api/admin/keys');
+            if (keys) {
+                // Sort: Master Key on top
+                keys.sort((a, b) => b.is_hidden - a.is_hidden);
+                
+                const html = keys.map(k => {
+                    const isMaster = k.is_hidden;
+                    const badgeClass = isMaster ? 'badge badge-master' : 'badge';
+                    const keyDisplay = isMaster ? 'MASTER KEY (Hidden)' : k.key;
+                    
+                    return `
+                    <div class="list-item">
+                        <div>
+                            <div class="item-title">${k.name}</div>
+                            <div style="margin-top:5px;">
+                                <span class="${badgeClass}" onclick="${isMaster ? '' : `copyText('${k.key}')`}">${keyDisplay}</span>
+                            </div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="font-weight:bold; font-size:1.1rem; color:${k.usage_count > 0 ? '#10b981' : 'var(--text-sub)'}">
+                                ${k.usage_count}
+                            </div>
+                            <div class="item-sub">requests</div>
+                            ${!isMaster ? `<button class="btn-sm-danger" style="margin-top:5px;" onclick="deleteKey('${k.key}')">Xóa</button>` : ''}
+                        </div>
+                    </div>
+                    `;
+                }).join('');
+                document.getElementById('keyList').innerHTML = html;
+            }
+        }
+
+        // --- ACTIONS ---
+        document.getElementById('providerForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const payload = {
+                name: document.getElementById('p_name').value,
+                provider_type: document.getElementById('p_type').value,
+                api_key: document.getElementById('p_key').value,
+                base_url: document.getElementById('p_base').value || null
+            };
+            await apiCall('/api/admin/providers', 'POST', payload);
+            e.target.reset();
+            loadProviders();
+        };
+
+        document.getElementById('keyForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const payload = {
+                name: document.getElementById('k_name').value,
+                custom_key: document.getElementById('k_custom').value || null
+            };
+            const res = await apiCall('/api/admin/keys', 'POST', payload);
+            if (res) {
+                alert(`Tạo Key thành công!\nKey: ${res.key}`);
+                e.target.reset();
+                switchTab('stats');
+            }
+        };
+
+        async function deleteProvider(name) {
+            if (confirm(`Bạn có chắc muốn xóa provider "${name}"?`)) {
+                await apiCall(`/api/admin/providers/${name}`, 'DELETE');
+                loadProviders();
+            }
+        }
+
+        async function deleteKey(key) {
+            if (confirm(`Thu hồi Key này? Client sẽ không thể truy cập nữa.`)) {
+                await apiCall(`/api/admin/keys/${key}`, 'DELETE');
+                loadKeys();
+            }
+        }
+
+        function copyText(text) {
+            navigator.clipboard.writeText(text);
+            alert("Đã copy Key vào clipboard!");
+        }
+
+        // --- INIT ---
+        checkAuth();
+    </script>
+</body>
+</html>
