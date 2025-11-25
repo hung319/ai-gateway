@@ -8,72 +8,216 @@
     <style>
         /* --- VARIABLES --- */
         :root {
-            --bg-body: #f8fafc; --bg-card: #ffffff; --text-main: #0f172a; --text-sub: #64748b;
-            --border: #e2e8f0; --primary: #2563eb; --primary-hover: #1d4ed8;
-            --danger: #ef4444; --success: #10b981; --code-bg: #f1f5f9;
-        }
-        html.dark {
-            --bg-body: #020617; --bg-card: #1e293b; --text-main: #f8fafc; --text-sub: #94a3b8;
-            --border: #334155; --primary: #3b82f6; --primary-hover: #60a5fa; --code-bg: #0f172a;
+            --bg-body: #f1f5f9;
+            --bg-card: #ffffff;
+            --text-main: #0f172a;
+            --text-sub: #64748b;
+            --border: #e2e8f0;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --danger: #ef4444;
+            --success: #10b981;
+            --code-bg: #f8fafc;
         }
 
-        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg-body); color: var(--text-main); margin: 0; padding: 20px; min-height: 100vh; font-size: 15px; }
+        html.dark {
+            --bg-body: #020617;
+            --bg-card: #1e293b;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --border: #334155;
+            --primary: #60a5fa;
+            --primary-hover: #3b82f6;
+            --code-bg: #0f172a;
+        }
+
+        /* --- GLOBAL LAYOUT --- */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            font-size: 15px;
+            line-height: 1.5;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
         * { box-sizing: border-box; }
         .hidden { display: none !important; }
 
-        /* Container */
-        .container { max-width: 1200px; margin: 0 auto; padding-bottom: 50px; }
+        /* Container chính */
+        .container {
+            max-width: 1400px; /* Rộng hơn để thoáng bảng thống kê */
+            margin: 0 auto;
+            padding: 20px;
+        }
 
-        /* Login Overlay */
-        #loginOverlay { position: fixed; inset: 0; background: var(--bg-body); z-index: 9999; display: flex; align-items: center; justify-content: center; }
-        .login-card { background: var(--bg-card); width: 100%; max-width: 380px; padding: 40px; border-radius: 16px; border: 1px solid var(--border); text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        /* --- LOGIN MODAL (CENTERED) --- */
+        #loginOverlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-body);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
 
-        /* Components */
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
-        .card { background: var(--bg-card); border-radius: 12px; padding: 24px; margin-bottom: 20px; border: 1px solid var(--border); }
-        .card h3 { margin-top: 0; margin-bottom: 20px; color: var(--primary); display: flex; align-items: center; gap: 10px; }
+        .login-card {
+            background: var(--bg-card);
+            width: 100%;
+            max-width: 400px;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            border: 1px solid var(--border);
+            text-align: center;
+        }
 
-        /* Form */
-        input, select { width: 100%; padding: 12px; background: var(--bg-body); color: var(--text-main); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 15px; outline: none; }
-        label { display: block; font-size: 0.75rem; font-weight: 700; color: var(--text-sub); text-transform: uppercase; margin-bottom: 5px; }
+        /* --- COMPONENTS --- */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
         
+        .header h1 { margin: 0; font-size: 1.5rem; color: var(--primary); display: flex; align-items: center; gap: 10px; }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border);
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .card h3 { margin-top: 0; margin-bottom: 20px; font-size: 1.1rem; color: var(--text-main); font-weight: 600; display: flex; align-items: center; gap: 8px; }
+
+        /* Forms */
+        .form-group { margin-bottom: 15px; text-align: left; }
+        label { display: block; font-size: 0.75rem; font-weight: 700; color: var(--text-sub); text-transform: uppercase; margin-bottom: 6px; }
+        
+        input, select {
+            width: 100%;
+            padding: 12px;
+            background: var(--bg-body);
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        input:focus, select:focus { border-color: var(--primary); }
+        input:disabled { opacity: 0.7; cursor: not-allowed; }
+
         /* Buttons */
-        .btn { width: 100%; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; color: white; border: none; transition: 0.2s; }
-        .btn-primary { background: var(--primary); } .btn-primary:hover { background: var(--primary-hover); }
-        .btn-success { background: var(--success); }
-        .btn-icon { background: none; border: none; font-size: 1.2rem; color: var(--text-main); cursor: pointer; padding: 5px; }
-        .btn-sm { padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; border: 1px solid var(--danger); color: var(--danger); background: transparent; cursor: pointer; }
-        .btn-sm:hover { background: var(--danger); color: white; }
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            color: white;
+        }
+        .btn:hover { opacity: 0.9; }
+        .btn-primary { background-color: var(--primary); }
+        .btn-success { background-color: var(--success); }
+        
+        .btn-icon {
+            background: none; border: none; cursor: pointer; font-size: 1.2rem; color: var(--text-sub); padding: 8px; transition: color 0.2s;
+        }
+        .btn-icon:hover { color: var(--text-main); }
+        .btn-icon.danger:hover { color: var(--danger); }
+
+        .btn-sm {
+            padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); background: transparent; color: var(--text-sub); cursor: pointer; font-size: 0.85rem;
+        }
+        .btn-sm:hover { border-color: var(--danger); color: var(--danger); }
 
         /* Tabs */
-        .tabs { display: flex; gap: 10px; justify-content: center; margin-bottom: 25px; }
-        .tab-btn { background: none; border: none; padding: 10px 20px; color: var(--text-sub); font-weight: 600; cursor: pointer; border-radius: 8px; }
-        .tab-btn.active { background: var(--primary); color: white; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+        .tab-btn {
+            background: none; border: none; padding: 8px 16px; cursor: pointer; font-weight: 600; color: var(--text-sub); border-radius: 6px; transition: 0.2s;
+        }
+        .tab-btn.active { background-color: var(--primary); color: white; }
+        .tab-btn:hover:not(.active) { background-color: var(--bg-card); }
 
-        /* List */
-        .list-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid var(--border); }
-        .key-box { font-family: monospace; background: var(--code-bg); padding: 5px 10px; border-radius: 4px; border: 1px dashed var(--border); cursor: pointer; color: var(--primary); user-select: none; }
-        .key-box:hover { background: var(--border); }
-        .usage-badge { background: var(--bg-body); padding: 4px 8px; border-radius: 12px; font-weight: bold; font-size: 0.85rem; border: 1px solid var(--border); }
+        /* Lists */
+        .list-item {
+            display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid var(--border);
+        }
+        .list-item:last-child { border-bottom: none; }
 
-        /* Toast */
-        #toast { visibility: hidden; background-color: #333; color: #fff; text-align: center; border-radius: 8px; padding: 12px 24px; position: fixed; z-index: 10000; bottom: 30px; left: 50%; transform: translateX(-50%); }
+        /* API Key Display */
+        .key-display {
+            font-family: monospace;
+            background: var(--code-bg);
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px dashed var(--border);
+            cursor: pointer;
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 0.9rem;
+            color: var(--primary);
+            max-width: 100%; 
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            user-select: none; /* Chặn bôi đen để ép click copy */
+            -webkit-user-select: none;
+        }
+        .key-display:hover { background: var(--border); }
+
+        /* Toast Notification */
+        #toast {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 8px;
+            padding: 16px;
+            position: fixed;
+            z-index: 10000;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 1rem;
+        }
         #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
         @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
         @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+
     </style>
 </head>
 <body>
 
     <div id="loginOverlay">
         <div class="login-card">
-            <h2 style="margin-top:0; color:var(--primary)"><i class="fa-solid fa-shield-halved"></i> Admin Access</h2>
-            <p style="color:var(--text-sub)">Hệ thống bảo mật bằng HttpOnly Cookie</p>
-            <form id="loginForm" style="margin-top:20px">
-                <input type="password" id="mk" placeholder="Nhập Master Key..." style="text-align:center" required>
-                <button class="btn btn-primary">Đăng Nhập</button>
+            <div style="font-size: 3rem; color: var(--primary); margin-bottom: 20px;">
+                <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <h2 style="margin-top: 0; margin-bottom: 10px; color: var(--text-main);">Gateway Login</h2>
+            <p style="color: var(--text-sub); margin-bottom: 30px;">Nhập Master Key để truy cập</p>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <input type="password" id="masterKeyInput" placeholder="sk-master-..." style="text-align: center;" required>
+                </div>
+                <button type="submit" class="btn btn-primary" id="loginBtn">Truy cập Dashboard</button>
             </form>
-            <p id="loginErr" style="color:var(--danger); display:none; margin-top:10px"></p>
+            <p id="loginError" style="color: var(--danger); font-size: 0.9rem; margin-top: 15px; display: none;"></p>
         </div>
     </div>
 
@@ -81,183 +225,325 @@
         <header class="header">
             <h1><i class="fa-solid fa-layer-group"></i> AI Gateway</h1>
             <div>
-                <button class="icon-btn" onclick="toggleTheme()"><i class="fa-solid fa-circle-half-stroke"></i></button>
-                <button class="icon-btn" onclick="logout()" style="color:var(--danger)"><i class="fa-solid fa-power-off"></i></button>
+                <button class="icon-btn" onclick="toggleTheme()" title="Đổi giao diện"><i class="fa-solid fa-circle-half-stroke"></i></button>
+                <button class="icon-btn danger" onclick="logout()" title="Đăng xuất"><i class="fa-solid fa-right-from-bracket"></i></button>
             </div>
         </header>
 
         <div class="tabs">
-            <button class="tab-btn active" onclick="tab('config')" id="t-config">Cấu Hình</button>
-            <button class="tab-btn" onclick="tab('stats')" id="t-stats">Thống Kê</button>
+            <button class="tab-btn active" onclick="switchTab('config')" id="tab-config">Cấu Hình</button>
+            <button class="tab-btn" onclick="switchTab('stats')" id="tab-stats">Thống Kê & Key</button>
         </div>
 
-        <div id="v-config">
-            <div class="card" style="max-width:800px; margin:0 auto 20px auto; border-top:4px solid var(--primary)">
-                <h3><i class="fa-solid fa-server"></i> Provider</h3>
-                <form id="pForm">
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
-                        <input type="text" id="p_name" placeholder="Alias (vd: gpt)" required>
-                        <select id="p_type" onchange="fillUrl()">
-                            <option value="openai">OpenAI Standard</option>
-                            <option value="gemini">Google Gemini</option>
-                            <option value="openrouter">OpenRouter</option>
-                            <option value="azure">Azure OpenAI</option>
-                        </select>
+        <div id="view-config">
+            <div class="card" style="max-width: 800px; margin: 0 auto 20px auto;">
+                <h3><i class="fa-solid fa-server"></i> Thêm Provider</h3>
+                <form id="providerForm">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div class="form-group">
+                            <label>Alias (Tên ngắn)</label>
+                            <input type="text" id="p_name" placeholder="vd: gpt, google" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Loại API</label>
+                            <select id="p_type" onchange="autoFillUrl()">
+                                <option value="openai">OpenAI Standard</option>
+                                <option value="gemini">Google Gemini</option>
+                                <option value="openrouter">OpenRouter</option>
+                                <option value="azure">Azure OpenAI</option>
+                            </select>
+                        </div>
                     </div>
-                    <input type="text" id="p_base" placeholder="Base URL">
-                    <input type="password" id="p_key" placeholder="API Key" required>
+                    
+                    <div class="form-group">
+                        <label>Base URL</label>
+                        <input type="text" id="p_base" placeholder="Tự động điền...">
+                    </div>
+                    <div class="form-group">
+                        <label>API Key</label>
+                        <input type="password" id="p_key" placeholder="sk-..." required>
+                    </div>
                     <button class="btn btn-primary">Lưu Provider</button>
                 </form>
-                <div id="pList" style="margin-top:20px; border-top:1px solid var(--border)"></div>
+                
+                <div id="providerList" style="margin-top: 20px; border-top: 1px solid var(--border);"></div>
             </div>
 
-            <div class="card" style="max-width:800px; margin:0 auto; border-top:4px solid var(--success)">
-                <h3><i class="fa-solid fa-key"></i> Client Key</h3>
-                <form id="kForm" style="display:flex; gap:10px">
-                    <input type="text" id="k_name" placeholder="Tên App" required style="margin-bottom:0">
-                    <input type="text" id="k_cust" placeholder="Custom Key (Opt)" style="margin-bottom:0">
-                    <button class="btn btn-success" style="width:auto">Tạo</button>
+            <div class="card" style="max-width: 800px; margin: 0 auto;">
+                <h3><i class="fa-solid fa-key"></i> Tạo Key Client</h3>
+                <form id="keyForm">
+                    <div class="form-group">
+                        <label>Tên Ứng Dụng</label>
+                        <input type="text" id="k_name" placeholder="vd: Cursor IDE" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Custom Key (Tùy chọn)</label>
+                        <input type="text" id="k_custom" placeholder="Để trống để tự sinh">
+                    </div>
+                    <button class="btn btn-success">Tạo Key Mới</button>
                 </form>
             </div>
         </div>
 
-        <div id="v-stats" class="hidden">
+        <div id="view-stats" class="hidden">
             <div class="card">
-                <h3>Danh Sách Key</h3>
-                <div style="display:flex; padding:10px; background:var(--bg-body); font-weight:bold; color:var(--text-sub); font-size:0.8rem; border-radius:6px;">
-                    <div style="width:30%">Tên</div>
-                    <div style="width:45%">Key (Click copy)</div>
-                    <div style="width:15%; text-align:center">Usage</div>
-                    <div style="width:10%; text-align:right">Act</div>
+                <h3><i class="fa-solid fa-list-ol"></i> Danh sách Key & Thống kê</h3>
+                <div style="display: flex; padding: 10px; background: var(--bg-body); font-weight: bold; font-size: 0.8rem; color: var(--text-sub); text-transform: uppercase; border-radius: 6px;">
+                    <div style="width: 30%;">Ứng Dụng</div>
+                    <div style="width: 45%;">API Key</div>
+                    <div style="width: 15%; text-align: center;">Usage</div>
+                    <div style="width: 10%; text-align: right;">Act</div>
                 </div>
-                <div id="kList"></div>
+                <div id="keyList"></div>
             </div>
         </div>
     </div>
 
-    <div id="toast">Copied!</div>
+    <div id="toast">Đã copy vào clipboard!</div>
 
     <script>
-        // --- THEME ---
-        if(localStorage.getItem('theme')==='dark') document.documentElement.classList.add('dark');
-        function toggleTheme(){ document.documentElement.classList.toggle('dark'); localStorage.setItem('theme', document.documentElement.classList.contains('dark')?'dark':'light'); }
+        // --- COOKIE HELPERS ---
+        const COOKIE_NAME = "gateway_token";
 
-        // --- UTILS ---
-        function fillUrl() {
+        function setCookie(name, value, days) {
+            let expires = "";
+            if (days) {
+                const date = new Date();
+                date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+                expires = "; expires=" + date.toUTCString();
+            }
+            // Cookie thường (ko HttpOnly vì tạo bởi JS) để lưu trạng thái "đã login" ở client
+            // Token thật sự bảo mật (session) nằm ở HttpOnly cookie do Server set (nếu chạy HTTPS/Domain chuẩn)
+            // Ở đây ta lưu tạm token vào cookie thường để tiện gửi header nếu cần fallback.
+            document.cookie = name + "=" + (value || "") + expires + "; path=/; SameSite=Lax";
+        }
+
+        function getCookie(name) {
+            const nameEQ = name + "=";
+            const ca = document.cookie.split(';');
+            for (let i = 0; i < ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+                if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+            }
+            return null;
+        }
+
+        function eraseCookie(name) {
+            document.cookie = name + '=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+        }
+
+        // --- STATE ---
+        // Ta ưu tiên dùng HttpOnly Cookie của server. Biến này chỉ để check trạng thái UI.
+        let isLogged = false;
+
+        // --- THEME ---
+        function initTheme() {
+            if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            }
+        }
+        function toggleTheme() {
+            document.documentElement.classList.toggle('dark');
+            localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+        }
+        initTheme();
+
+        // --- UI HELPERS ---
+        function showToast(msg) {
+            const x = document.getElementById("toast");
+            x.innerText = msg;
+            x.className = "show";
+            setTimeout(function(){ x.className = x.className.replace("show", ""); }, 3000);
+        }
+
+        // FALLBACK COPY FUNCTION
+        function copyText(text) {
+            if (!text) return;
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(() => showToast("Đã copy Key!"))
+                .catch(() => fallbackCopyText(text));
+            } else {
+                fallbackCopyText(text);
+            }
+        }
+
+        function fallbackCopyText(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.top = "0"; textArea.style.left = "0"; textArea.style.position = "fixed";
+            document.body.appendChild(textArea);
+            textArea.focus(); textArea.select();
+            try {
+                const successful = document.execCommand('copy');
+                if(successful) showToast("Đã copy Key!");
+                else prompt("Copy thủ công:", text);
+            } catch (err) { prompt("Copy thủ công:", text); }
+            document.body.removeChild(textArea);
+        }
+
+        function autoFillUrl() {
             const t = document.getElementById('p_type').value;
             const b = document.getElementById('p_base');
-            if(t==='openrouter') { b.value='https://openrouter.ai/api/v1'; b.disabled=false; }
-            else if(t==='gemini') { b.value='Native API'; b.disabled=true; }
-            else { b.value=''; b.disabled=false; b.placeholder='Base URL'; }
+            if (t === 'openrouter') { b.value = 'https://openrouter.ai/api/v1'; b.disabled = false; }
+            else if (t === 'gemini') { b.value = 'Native API (Managed)'; b.disabled = true; }
+            else if (t === 'openai') { b.value = ''; b.disabled = false; b.placeholder='https://api.openai.com/v1'; }
+            else { b.value = ''; b.disabled = false; }
         }
 
-        function tab(name) {
-            document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-            document.getElementById('v-config').classList.add('hidden');
-            document.getElementById('v-stats').classList.add('hidden');
-            document.getElementById(`t-${name}`).classList.add('active');
-            document.getElementById(`v-${name}`).classList.remove('hidden');
-            if(name==='config') loadP();
-            if(name==='stats') loadK();
+        function switchTab(name) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('view-config').classList.add('hidden');
+            document.getElementById('view-stats').classList.add('hidden');
+            document.getElementById(`tab-${name}`).classList.add('active');
+            document.getElementById(`view-${name}`).classList.remove('hidden');
+            if(name === 'config') loadProviders();
+            if(name === 'stats') loadKeys();
         }
 
-        function showToast(msg) {
-            const t = document.getElementById("toast"); t.innerText=msg; t.className="show";
-            setTimeout(()=>t.className=t.className.replace("show",""), 2000);
+        // --- AUTH LOGIC ---
+        async function checkSession() {
+            // Gọi thử API lấy provider để xem session cookie có hợp lệ không
+            const data = await apiCall('/api/admin/providers');
+            if (data) {
+                document.getElementById('loginOverlay').classList.add('hidden');
+                document.getElementById('app').classList.remove('hidden');
+                loadProviders();
+            } else {
+                document.getElementById('loginOverlay').classList.remove('hidden');
+            }
         }
 
-        // Copy Fallback cho HTTP
-        function copyText(txt) {
-            const ta = document.createElement('textarea');
-            ta.value = txt; document.body.appendChild(ta); ta.select();
-            try { document.execCommand('copy'); showToast('Đã copy Key!'); } catch(e){}
-            document.body.removeChild(ta);
-        }
+        document.getElementById('loginForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('loginBtn');
+            const err = document.getElementById('loginError');
+            const key = document.getElementById('masterKeyInput').value.trim();
+            
+            if (!key) return;
+            btn.disabled = true; btn.innerText = "Đang đăng nhập...";
+            if(err) err.style.display = "none";
 
-        // --- API (Automatic Cookie Handling) ---
-        async function api(url, method='GET', body=null) {
             try {
-                const res = await fetch(url, {
-                    method, headers: {'Content-Type':'application/json'},
+                // Gọi API Login để Server set HttpOnly Cookie
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ master_key: key })
+                });
+
+                if (res.ok) {
+                    checkSession(); // Reload UI
+                } else {
+                    throw new Error("Key không đúng");
+                }
+            } catch (error) {
+                if(err) { err.innerText = "Master Key sai hoặc lỗi Server."; err.style.display = "block"; }
+                else alert("Master Key sai!");
+                btn.disabled = false; btn.innerText = "Truy cập Dashboard";
+            }
+        };
+
+        async function logout() {
+            await fetch('/api/auth/logout', { method: 'POST' });
+            location.reload();
+        }
+
+        // --- API WRAPPER ---
+        // Tự động dùng Cookie của trình duyệt, không cần gửi Header Authorization thủ công
+        async function apiCall(path, method='GET', body=null) {
+            try {
+                const res = await fetch(path, {
+                    method, 
+                    headers: {'Content-Type':'application/json'},
                     body: body ? JSON.stringify(body) : null
                 });
-                if(res.status === 401) { 
-                    document.getElementById('loginOverlay').classList.remove('hidden');
-                    document.getElementById('app').classList.add('hidden');
-                    return null; 
+                
+                if (res.status === 401 || res.status === 403) { return null; }
+                if (!res.ok) {
+                    const err = await res.json();
+                    alert("Lỗi: " + (err.detail || "Unknown error"));
+                    return null;
                 }
-                return res.ok ? await res.json() : null;
-            } catch { return null; }
+                return await res.json();
+            } catch(e) { return null; }
         }
 
         // --- DATA ---
-        async function loadP() {
-            const d = await api('/api/admin/providers');
-            if(d) document.getElementById('pList').innerHTML = d.map(p => `
-                <div class="list-item">
-                    <div><b>${p.name}</b> <span style="font-size:0.85rem; color:var(--text-sub)">(${p.provider_type})</span></div>
-                    <button class="btn-sm" onclick="delP('${p.name}')">Xóa</button>
-                </div>`).join('');
+        async function loadProviders() {
+            const data = await apiCall('/api/admin/providers');
+            if (data) {
+                document.getElementById('providerList').innerHTML = data.map(p => `
+                    <div class="list-item">
+                        <div>
+                            <div style="font-weight:bold; font-size:1rem;">${p.name}</div>
+                            <div style="font-size:0.85rem; color:var(--text-sub)">
+                                <span style="background:var(--border); padding:1px 5px; border-radius:4px;">${p.provider_type}</span>
+                                ${p.base_url || 'Default'}
+                            </div>
+                        </div>
+                        <button class="btn-sm" onclick="delProvider('${p.name}')">Xóa</button>
+                    </div>
+                `).join('');
+            }
         }
 
-        async function loadK() {
-            const d = await api('/api/admin/keys');
-            if(d) {
-                d.sort((a,b) => b.is_hidden - a.is_hidden);
-                document.getElementById('kList').innerHTML = d.map(k => {
+        async function loadKeys() {
+            const data = await apiCall('/api/admin/keys');
+            if (data) {
+                data.sort((a,b) => b.is_hidden - a.is_hidden);
+                document.getElementById('keyList').innerHTML = data.map(k => {
                     const isMaster = k.is_hidden;
-                    const keyHtml = isMaster 
-                        ? `<span style="color:#d97706; background:#fffbeb; padding:2px 6px; border-radius:4px;">MASTER (Hidden)</span>`
-                        : `<span class="key-box" onclick="copyText('${k.key}')" oncontextmenu="return false;">${k.key} <i class="fa-regular fa-copy"></i></span>`;
+                    // Style hiển thị key
+                    const keyDisplay = isMaster 
+                        ? `<span class="key-display" style="color:#d97706; border-color:#d97706; background:#fffbeb; cursor:default">MASTER KEY (Hidden)</span>`
+                        : `<span class="key-display" onclick="copyText('${k.key}')" oncontextmenu="return false;" title="Left-Click Copy">${k.key} <i class="fa-regular fa-copy"></i></span>`;
+                    
                     return `
                     <div class="list-item">
-                        <div style="width:30%">${k.name}</div>
-                        <div style="width:45%">${keyHtml}</div>
-                        <div style="width:15%; text-align:center; font-weight:bold; color:${k.usage_count>0?'var(--success)':'var(--text-sub)'}">${k.usage_count}</div>
-                        <div style="width:10%; text-align:right">${!isMaster ? `<button class="btn-sm" onclick="delK('${k.key}')">Xóa</button>` : ''}</div>
+                        <div style="width:30%; font-weight:600;">${k.name}</div>
+                        <div style="width:45%;">${keyDisplay}</div>
+                        <div style="width:15%; text-align:center;">
+                            <span class="usage-badge" style="color:${k.usage_count > 0 ? 'var(--success)' : 'var(--text-sub)'}">${k.usage_count}</span>
+                        </div>
+                        <div style="width:10%; text-align:right;">
+                            ${!isMaster ? `<button class="btn-sm" onclick="delKey('${k.key}')">Xóa</button>` : ''}
+                        </div>
                     </div>`;
                 }).join('');
             }
         }
 
-        // --- AUTH FLOW ---
-        document.getElementById('loginForm').onsubmit = async (e) => {
+        // --- ACTIONS ---
+        document.getElementById('providerForm').onsubmit = async (e) => {
             e.preventDefault();
-            const key = document.getElementById('mk').value;
-            const res = await fetch('/api/auth/login', {
-                method: 'POST', headers: {'Content-Type':'application/json'},
-                body: JSON.stringify({ master_key: key })
-            });
-            if(res.ok) {
-                document.getElementById('loginOverlay').classList.add('hidden');
-                document.getElementById('app').classList.remove('hidden');
-                loadP();
-            } else {
-                document.getElementById('loginErr').innerText = "Sai Master Key!";
-                document.getElementById('loginErr').style.display = 'block';
-            }
+            // Xử lý riêng cho Gemini: Base URL null
+            let baseUrl = document.getElementById('p_base').value;
+            if(document.getElementById('p_base').disabled) baseUrl = null;
+
+            const payload = {
+                name: document.getElementById('p_name').value,
+                provider_type: document.getElementById('p_type').value,
+                api_key: document.getElementById('p_key').value,
+                base_url: baseUrl
+            };
+            await apiCall('/api/admin/providers', 'POST', payload);
+            e.target.reset();
+            loadProviders();
         };
 
-        async function logout() {
-            await fetch('/api/auth/logout', {method:'POST'});
-            location.reload();
-        }
+        document.getElementById('keyForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const payload = {
+                name: document.getElementById('k_name').value,
+                custom_key: document.getElementById('k_custom').value || null
+            };
+            const res = await apiCall('/api/admin/keys', 'POST', payload);
+            if (res) { showToast("Tạo Key thành công!"); e.target.reset(); switchTab('stats'); }
+        };
 
-        async function checkSession() {
-            // Gọi thử API, nếu 401 thì api() sẽ tự hiện login form
-            const d = await api('/api/admin/providers');
-            if(d) {
-                document.getElementById('loginOverlay').classList.add('hidden');
-                document.getElementById('app').classList.remove('hidden');
-                loadP();
-            }
-        }
-
-        // --- HANDLERS ---
-        document.getElementById('pForm').onsubmit = async(e)=>{e.preventDefault(); await api('/api/admin/providers','POST',{name:document.getElementById('p_name').value, provider_type:document.getElementById('p_type').value, api_key:document.getElementById('p_key').value, base_url:document.getElementById('p_base').disabled ? null : document.getElementById('p_base').value}); e.target.reset(); loadP(); };
-        document.getElementById('kForm').onsubmit = async(e)=>{e.preventDefault(); const r=await api('/api/admin/keys','POST',{name:document.getElementById('k_name').value, custom_key:document.getElementById('k_cust').value||null}); if(r){showToast('Tạo Key OK!');e.target.reset();tab('stats');}};
-        async function delP(n){if(confirm('Xóa?')) {await api(`/api/admin/providers/${n}`,'DELETE'); loadP();}}
-        async function delK(k){if(confirm('Xóa?')) {await api(`/api/admin/keys/${k}`,'DELETE'); loadK();}}
+        async function delProvider(n) { if(confirm('Xóa Provider này?')) { await apiCall(`/api/admin/providers/${n}`, 'DELETE'); loadProviders(); } }
+        async function delKey(k) { if(confirm('Thu hồi Key này?')) { await apiCall(`/api/admin/keys/${k}`, 'DELETE'); loadKeys(); } }
 
         // Start
         checkSession();
