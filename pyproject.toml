@@ -13,6 +13,7 @@ dependencies = [
     "jinja2",
     "httpx",
     "python-multipart",
+    "redis",
     ]
 
 [tool.uv]
