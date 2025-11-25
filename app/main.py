@@ -1,7 +1,8 @@
 import os
 import secrets
 import asyncio
-from typing import Optional, List
+import json
+from typing import Optional, List, Dict, Any
 from contextlib import asynccontextmanager
 
 import httpx
@@ -15,8 +16,7 @@ from litellm import acompletion, image_generation, speech, transcription
 # --- 1. CONFIGURATION ---
 DB_PATH = os.getenv("DB_PATH", "gateway.db")
 MASTER_KEY = os.getenv("MASTER_KEY", "sk-master-secret-123") 
-MODEL_FETCH_TIMEOUT = 10.0 # Tăng lên 10s vì OpenRouter list model rất dài
-
+MODEL_FETCH_TIMEOUT = 10.0
 MASTER_TRACKER_ID = "MASTER_ADMIN_TRACKER"
 
 sqlite_url = f"sqlite:///{DB_PATH}"
@@ -35,6 +35,14 @@ class GatewayKey(SQLModel, table=True):
     usage_count: int = Field(default=0)
     is_active: bool = Field(default=True)
     is_hidden: bool = Field(default=False)
+
+# MỚI: Bảng lưu cấu hình MCP
+class MCPServer(SQLModel, table=True):
+    name: str = Field(primary_key=True, index=True) # VD: filesystem, github
+    command: str # VD: npx, python, uv
+    args: str # VD: -y @modelcontextprotocol/server-filesystem /Users/me
+    env_vars: Optional[str] = None # JSON string lưu biến môi trường
+    description: Optional[str] = None
 
 def create_db_and_tables():
     SQLModel.metadata.create_all(engine)
@@ -80,20 +88,15 @@ async def lifespan(app: FastAPI):
     create_db_and_tables()
     yield
 
-app = FastAPI(lifespan=lifespan, title="AI Gateway v2.7 OpenRouter")
+app = FastAPI(lifespan=lifespan, title="AI Gateway v2.8 MCP")
 
 # --- 5. HELPER ---
 async def fetch_provider_models(client: httpx.AsyncClient, provider: Provider):
     api_base = provider.base_url
-    
-    # Cấu hình Default URL cho các loại phổ biến
     if not api_base:
-        if provider.provider_type == "openrouter":
-            api_base = "https://openrouter.ai/api/v1"
-        elif provider.provider_type == "openai":
-            api_base = "https://api.openai.com/v1"
-        else:
-            return [] # Không đoán mò các loại khác
+        if provider.provider_type == "openrouter": api_base = "https://openrouter.ai/api/v1"
+        elif provider.provider_type == "openai": api_base = "https://api.openai.com/v1"
+        else: return []
 
     api_base = api_base.rstrip('/')
     if not api_base.endswith("/v1") and ("openai" in provider.provider_type or "openrouter" in provider.provider_type):
@@ -101,11 +104,7 @@ async def fetch_provider_models(client: httpx.AsyncClient, provider: Provider):
 
     url = f"{api_base}/models"
     headers = {"Authorization": f"Bearer {provider.api_key}", "Content-Type": "application/json"}
-    
-    # OpenRouter đôi khi cần thêm Referer header
-    if provider.provider_type == "openrouter":
-        headers["HTTP-Referer"] = "https://github.com/hung319/ai-gateway"
-        headers["X-Title"] = "AI Gateway"
+    if provider.provider_type == "openrouter": headers["HTTP-Referer"] = "gateway"; headers["X-Title"] = "AI Gateway"
 
     fetched_ids = []
     try:
@@ -117,14 +116,7 @@ async def fetch_provider_models(client: httpx.AsyncClient, provider: Provider):
                     if "id" in item: fetched_ids.append(item["id"])
     except: pass
 
-    current_time = 1700000000
-    return [{
-        "id": f"{provider.name}/{m_id}", # alias/model_id
-        "object": "model",
-        "created": current_time,
-        "owned_by": provider.provider_type,
-        "permission": []
-    } for m_id in fetched_ids]
+    return [{"id": f"{provider.name}/{m_id}", "object": "model", "created": 1700000000, "owned_by": provider.provider_type, "permission": []} for m_id in fetched_ids]
 
 def parse_model_alias(raw_model: str, session: Session):
     if "/" not in raw_model: raise HTTPException(400, "Format: provider_alias/model_name")
@@ -133,7 +125,7 @@ def parse_model_alias(raw_model: str, session: Session):
     if not provider: raise HTTPException(404, f"Provider '{alias}' not found")
     return provider, actual_model
 
-# --- 6. FRONTEND (UPDATED OPENROUTER) ---
+# --- 6. FRONTEND (MCP UPDATE) ---
 html_panel = """
 <!DOCTYPE html>
 <html lang="vi">
@@ -148,23 +140,23 @@ html_panel = """
         * { box-sizing: border-box; }
         .hidden { display: none !important; }
         .container { max-width: 800px; margin: 0 auto; padding: 20px; }
-        .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
-        .tab-btn { background: none; border: none; font-size: 1rem; font-weight: bold; color: #6b7280; padding: 10px 15px; cursor: pointer; border-radius: 6px; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #ddd; padding-bottom: 10px; overflow-x: auto; }
+        .tab-btn { background: none; border: none; font-size: 1rem; font-weight: bold; color: #6b7280; padding: 10px 15px; cursor: pointer; border-radius: 6px; white-space: nowrap; }
         .tab-btn.active { background: #eef2ff; color: var(--primary); }
         .card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid var(--border); box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
         .card-title { font-weight: bold; margin-bottom: 15px; display: flex; gap: 10px; align-items: center; font-size: 1.1rem; }
-        input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; margin-top: 5px; font-size: 16px; margin-bottom: 15px; }
+        input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; margin-top: 5px; font-size: 16px; margin-bottom: 15px; font-family: inherit; }
+        textarea { resize: vertical; min-height: 80px; font-family: monospace; font-size: 0.9rem; }
         label { font-size: 0.75rem; font-weight: bold; color: #6b7280; text-transform: uppercase; }
         .btn { width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; color: white; cursor: pointer; }
         .btn-primary { background: var(--primary); }
+        .btn-dark { background: #1f2937; }
         .btn-danger { background: #ef4444; width: auto; padding: 6px 10px; font-size: 0.8rem; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-        th { text-align: left; padding: 10px; border-bottom: 2px solid #eee; color: #6b7280; font-size: 0.8rem; text-transform: uppercase; }
-        td { padding: 10px; border-bottom: 1px solid #eee; }
         .badge { background: #e0e7ff; color: var(--primary); padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85rem; }
         .badge-master { background: #fef3c7; color: #d97706; font-weight: bold; }
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 99; }
         .modal-box { background: white; padding: 30px; border-radius: 12px; width: 90%; max-width: 350px; text-align: center; }
+        .code-block { background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 6px; overflow-x: auto; font-family: monospace; font-size: 0.85rem; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -179,61 +171,83 @@ html_panel = """
             <h1 style="margin:0; color:var(--primary);"><i class="fa-solid fa-layer-group"></i> AI Gateway</h1>
             <button onclick="logout()" style="border:none; background:none; color:#ef4444; cursor:pointer;">Logout</button>
         </header>
+        
         <div class="tabs">
             <button class="tab-btn active" onclick="switchTab('config')" id="tab-config"><i class="fa-solid fa-gears"></i> Cấu Hình</button>
+            <button class="tab-btn" onclick="switchTab('mcp')" id="tab-mcp"><i class="fa-solid fa-diagram-project"></i> MCP Ecosystem</button>
             <button class="tab-btn" onclick="switchTab('stats')" id="tab-stats"><i class="fa-solid fa-chart-simple"></i> Thống Kê</button>
         </div>
+
         <div id="view-config">
             <div class="card" style="border-top: 4px solid var(--primary);">
                 <div class="card-title" style="color:var(--primary)"><i class="fa-solid fa-server"></i> Thêm Provider</div>
                 <form id="providerForm">
-                    <label>Alias (Tên gọi)</label>
-                    <input type="text" id="p_name" placeholder="vd: open, gpt, local" required>
+                    <label>Alias (Tên gọi)</label><input type="text" id="p_name" placeholder="vd: open, gpt" required>
                     <label>Loại API</label>
                     <select id="p_type" onchange="autoFillBaseUrl()" required>
-                        <option value="openai">OpenAI Standard (Mặc định)</option>
-                        <option value="openrouter">OpenRouter (Khuyên dùng)</option>
+                        <option value="openai">OpenAI Standard</option>
+                        <option value="openrouter">OpenRouter</option>
                         <option value="azure">Azure OpenAI</option>
                     </select>
-                    <label>Base URL</label>
-                    <input type="text" id="p_base" placeholder="Tự động điền nếu chọn OpenRouter">
-                    <label>API Key</label>
-                    <input type="password" id="p_key" placeholder="sk-...">
+                    <label>Base URL</label><input type="text" id="p_base" placeholder="Auto fill...">
+                    <label>API Key</label><input type="password" id="p_key" placeholder="sk-...">
                     <button class="btn btn-primary">Lưu Provider</button>
                 </form>
                 <div id="providerList" style="margin-top:20px;"></div>
             </div>
             <div class="card" style="border-top: 4px solid #10b981;">
-                <div class="card-title" style="color:#059669"><i class="fa-solid fa-plus-circle"></i> Tạo Key Mới</div>
+                <div class="card-title" style="color:#059669"><i class="fa-solid fa-plus-circle"></i> Tạo Client Key</div>
                 <form id="createKeyForm">
-                    <label>Tên Ứng Dụng</label>
-                    <input type="text" id="k_name" placeholder="vd: Web Chat" required>
-                    <label>Custom API Key (Tùy chọn)</label>
-                    <input type="text" id="k_custom" placeholder="Để trống để tự tạo">
+                    <label>Tên Ứng Dụng</label><input type="text" id="k_name" placeholder="vd: Web Chat" required>
+                    <label>Custom API Key</label><input type="text" id="k_custom" placeholder="Optional">
                     <button class="btn" style="background:#10b981">Tạo Key</button>
                 </form>
             </div>
         </div>
+
+        <div id="view-mcp" class="hidden">
+            <div class="card" style="border-top: 4px solid #8b5cf6;">
+                <div class="card-title" style="color:#7c3aed"><i class="fa-solid fa-plug"></i> Quản lý MCP Servers</div>
+                <p style="font-size:0.85rem; color:#666; margin-bottom:15px;">Khai báo các MCP Servers tại đây để tạo file cấu hình cho Claude/Cursor.</p>
+                
+                <form id="mcpForm">
+                    <label>Server Name</label><input type="text" id="m_name" placeholder="vd: filesystem, github" required>
+                    <label>Command (Lệnh chạy)</label><input type="text" id="m_command" placeholder="vd: npx, uvx, python" required>
+                    <label>Arguments (Tham số)</label><input type="text" id="m_args" placeholder="vd: -y @modelcontextprotocol/server-filesystem /path/to/allow">
+                    <label>Environment Variables (JSON)</label>
+                    <textarea id="m_env" placeholder='{"GITHUB_TOKEN": "..."}'></textarea>
+                    <button class="btn" style="background:#8b5cf6">Lưu MCP Server</button>
+                </form>
+                
+                <div id="mcpList" style="margin-top:20px;"></div>
+            </div>
+
+            <div class="card">
+                <div class="card-title"><i class="fa-solid fa-file-code"></i> Export Config</div>
+                <p style="font-size:0.85rem; color:#666;">Copy nội dung này vào file <code>claude_desktop_config.json</code> hoặc cấu hình Cursor của bạn.</p>
+                <div id="mcpExport" class="code-block">Chưa có dữ liệu...</div>
+                <button onclick="copyConfig()" class="btn btn-dark" style="margin-top:10px;"><i class="fa-regular fa-copy"></i> Copy JSON</button>
+            </div>
+        </div>
+
         <div id="view-stats" class="hidden">
             <div class="card">
-                <div class="card-title"><i class="fa-solid fa-list"></i> Danh Sách & Thống Kê</div>
-                <div style="overflow-x:auto"><table><thead><tr><th>Tên</th><th>Key</th><th style="text-align:center">Dùng</th><th style="text-align:right">#</th></tr></thead><tbody id="statsList"></tbody></table></div>
+                <div class="card-title"><i class="fa-solid fa-list"></i> Danh Sách Key</div>
+                <div style="overflow-x:auto"><table><thead><tr><th>Tên</th><th>Key</th><th>Dùng</th><th>#</th></tr></thead><tbody id="statsList"></tbody></table></div>
             </div>
         </div>
     </div>
+
     <script>
         const MASTER_KEY_KEY = 'gw_master_key_v2';
         let currentKey = localStorage.getItem(MASTER_KEY_KEY);
-        
-        // AUTO FILL URL LOGIC
+
+        // Auto Fill
         function autoFillBaseUrl() {
-            const type = document.getElementById('p_type').value;
-            const baseInput = document.getElementById('p_base');
-            if (type === 'openrouter') {
-                baseInput.value = 'https://openrouter.ai/api/v1';
-            } else if (type === 'openai') {
-                baseInput.value = ''; // Reset cho OpenAI
-            }
+            const t = document.getElementById('p_type').value;
+            const b = document.getElementById('p_base');
+            if(t==='openrouter') b.value='https://openrouter.ai/api/v1';
+            else if(t==='openai') b.value='';
         }
 
         function switchTab(t) {
@@ -242,18 +256,25 @@ html_panel = """
             document.getElementById(`view-${t}`).classList.remove('hidden');
             document.getElementById(`tab-${t}`).classList.add('active');
             if(t==='stats') loadKeys();
+            if(t==='mcp') loadMCP();
         }
+
+        // Auth
         function checkAuth() {
             if (!currentKey) { document.getElementById('loginModal').classList.remove('hidden'); document.getElementById('appContent').classList.add('hidden'); }
             else { document.getElementById('loginModal').classList.add('hidden'); document.getElementById('appContent').classList.remove('hidden'); initApp(); }
         }
         document.getElementById('loginForm').onsubmit = (e) => { e.preventDefault(); const val = document.getElementById('masterKeyInput').value.trim(); if(val) { localStorage.setItem(MASTER_KEY_KEY, val); currentKey = val; checkAuth(); }}
         function logout() { localStorage.removeItem(MASTER_KEY_KEY); location.reload(); }
+
+        // API
         async function api(path, method='GET', body=null) {
             const opts = { method, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentKey}` }};
             if(body) opts.body = JSON.stringify(body);
             try { const res = await fetch(path, opts); if(res.status===401||res.status===403){logout();return null;} if(!res.ok){alert((await res.json()).detail);return null;} return res.json(); } catch(e){alert("Error");return null;}
         }
+
+        // LOADERS
         async function loadProviders() {
             const ps = await api('/api/admin/providers');
             if(ps) document.getElementById('providerList').innerHTML = ps.map(p => `<div style="background:#f9fafb; padding:10px; border:1px solid #eee; border-radius:6px; margin-bottom:5px; display:flex; justify-content:space-between; align-items:center;"><div><div style="font-weight:bold; color:#374151">${p.name}</div><div style="font-size:0.8rem; color:#6b7280">${p.base_url||'Default'} (${p.provider_type})</div></div><button onclick="delProvider('${p.name}')" style="border:none; background:none; color:#ef4444; cursor:pointer;"><i class="fa-solid fa-trash"></i></button></div>`).join('');
@@ -265,20 +286,63 @@ html_panel = """
                 document.getElementById('statsList').innerHTML = ks.map(k => `<tr><td style="font-weight:bold">${k.name}</td><td>${k.is_hidden?'<span class="badge badge-master">MASTER</span>':`<span class="badge" onclick="copy('${k.key}')" style="cursor:pointer">${k.key}</span>`}</td><td style="text-align:center;font-weight:bold">${k.usage_count}</td><td style="text-align:right">${!k.is_hidden?`<button onclick="delKey('${k.key}')" class="btn-danger"><i class="fa-solid fa-trash"></i></button>`:''}</td></tr>`).join('');
             }
         }
-        document.getElementById('providerForm').onsubmit = async (e) => {
-            e.preventDefault();
-            await api('/api/admin/providers', 'POST', {
-                name: document.getElementById('p_name').value,
-                provider_type: document.getElementById('p_type').value,
-                api_key: document.getElementById('p_key').value || "sk-dummy",
-                base_url: document.getElementById('p_base').value || null
+        
+        // MCP LOGIC
+        async function loadMCP() {
+            const servers = await api('/api/admin/mcp');
+            if(!servers) return;
+            
+            // Render List
+            document.getElementById('mcpList').innerHTML = servers.map(s => `
+                <div style="background:#f5f3ff; padding:10px; border:1px solid #ddd6fe; border-radius:6px; margin-bottom:8px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div style="font-weight:bold; color:#5b21b6">${s.name}</div>
+                        <button onclick="delMCP('${s.name}')" style="border:none; background:none; color:#ef4444; cursor:pointer;"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                    <div style="font-family:monospace; font-size:0.8rem; color:#4b5563; margin-top:5px; word-break:break-all;">
+                        <span style="color:#7c3aed">${s.command}</span> ${s.args}
+                    </div>
+                </div>
+            `).join('');
+
+            // Generate Config JSON
+            const mcpConfig = { mcpServers: {} };
+            servers.forEach(s => {
+                mcpConfig.mcpServers[s.name] = {
+                    command: s.command,
+                    args: s.args.split(' ').filter(a => a.trim() !== ''),
+                    env: s.env_vars ? JSON.parse(s.env_vars) : undefined
+                };
             });
-            e.target.reset(); loadProviders();
+            document.getElementById('mcpExport').textContent = JSON.stringify(mcpConfig, null, 2);
+        }
+
+        // HANDLERS
+        document.getElementById('providerForm').onsubmit = async (e) => { e.preventDefault(); await api('/api/admin/providers', 'POST', { name: document.getElementById('p_name').value, provider_type: document.getElementById('p_type').value, api_key: document.getElementById('p_key').value||"sk-dummy", base_url: document.getElementById('p_base').value||null }); e.target.reset(); loadProviders(); };
+        document.getElementById('createKeyForm').onsubmit = async (e) => { e.preventDefault(); const res=await api('/api/admin/keys', 'POST', { name: document.getElementById('k_name').value, custom_key: document.getElementById('k_custom').value.trim()||null }); if(res){alert(`Key: ${res.key}`);e.target.reset();switchTab('stats');} };
+        
+        document.getElementById('mcpForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const envRaw = document.getElementById('m_env').value.trim();
+            // Validate JSON
+            if(envRaw) { try { JSON.parse(envRaw); } catch { alert("Environment Variables phải là JSON hợp lệ!"); return; } }
+            
+            await api('/api/admin/mcp', 'POST', {
+                name: document.getElementById('m_name').value,
+                command: document.getElementById('m_command').value,
+                args: document.getElementById('m_args').value,
+                env_vars: envRaw || null
+            });
+            e.target.reset(); loadMCP();
         };
-        document.getElementById('createKeyForm').onsubmit = async (e) => { e.preventDefault(); const res = await api('/api/admin/keys', 'POST', { name: document.getElementById('k_name').value, custom_key: document.getElementById('k_custom').value.trim()||null }); if(res){alert(`Key: ${res.key}`);e.target.reset();switchTab('stats');} };
+
         async function delProvider(n) { if(confirm('Xóa?')) { await api(`/api/admin/providers/${n}`, 'DELETE'); loadProviders(); }}
         async function delKey(k) { if(confirm('Xóa?')) { await api(`/api/admin/keys/${k}`, 'DELETE'); loadKeys(); }}
+        async function delMCP(n) { if(confirm('Xóa MCP này?')) { await api(`/api/admin/mcp/${n}`, 'DELETE'); loadMCP(); }}
+        
         function copy(t) { navigator.clipboard.writeText(t); alert("Copied!"); }
+        function copyConfig() { navigator.clipboard.writeText(document.getElementById('mcpExport').textContent); alert("Đã copy JSON Config!"); }
+        
         function initApp() { loadProviders(); loadKeys(); }
         checkAuth();
     </script>
@@ -291,6 +355,19 @@ html_panel = """
 async def root(): return RedirectResponse(url="/panel")
 @app.get("/panel", response_class=HTMLResponse)
 async def panel(): return html_panel
+
+# --- MCP API ---
+class MCPRequest(BaseModel): name: str; command: str; args: str; env_vars: Optional[str]=None
+@app.post("/api/admin/mcp", dependencies=[Depends(verify_admin)])
+async def create_mcp(d: MCPRequest, s: Session = Depends(get_session)):
+    s.merge(MCPServer(**d.dict())); s.commit(); return {"status":"ok"}
+@app.get("/api/admin/mcp", dependencies=[Depends(verify_admin)])
+async def list_mcp(s: Session = Depends(get_session)): return s.exec(select(MCPServer)).all()
+@app.delete("/api/admin/mcp/{name}", dependencies=[Depends(verify_admin)])
+async def delete_mcp(name: str, s: Session = Depends(get_session)):
+    obj=s.get(MCPServer,name); (s.delete(obj), s.commit()) if obj else None; return {"status":"ok"}
+
+# --- OTHER CRUD ---
 @app.post("/api/admin/providers", dependencies=[Depends(verify_admin)])
 async def create_provider(p: Provider, s: Session = Depends(get_session)): s.merge(p); s.commit(); return {"status": "ok"}
 @app.get("/api/admin/providers", dependencies=[Depends(verify_admin)])
@@ -307,6 +384,8 @@ async def create_key(d: KeyCreateRequest, s: Session = Depends(get_session)):
 async def list_keys(s: Session = Depends(get_session)): return s.exec(select(GatewayKey)).all()
 @app.delete("/api/admin/keys/{key}", dependencies=[Depends(verify_admin)])
 async def delete_key(key: str, s: Session = Depends(get_session)): k=s.get(GatewayKey,key); (s.delete(k),s.commit()) if k and not k.is_hidden else None; return {"status": "ok"}
+
+# --- AI ENDPOINTS ---
 @app.get("/v1/models")
 async def list_models(k: GatewayKey=Depends(verify_usage_access), s: Session=Depends(get_session)):
     providers = s.exec(select(Provider)).all()
@@ -317,7 +396,6 @@ async def list_models(k: GatewayKey=Depends(verify_usage_access), s: Session=Dep
     all_models.sort(key=lambda x: x["id"])
     return {"object": "list", "data": all_models}
 
-# --- 8. AI ENDPOINTS ---
 @app.post("/v1/chat/completions")
 async def chat_completions(req: Request, k: GatewayKey=Depends(verify_usage_access), s: Session=Depends(get_session)):
     try: body = await req.json()
@@ -325,7 +403,6 @@ async def chat_completions(req: Request, k: GatewayKey=Depends(verify_usage_acce
     provider, actual_model = parse_model_alias(body.get("model", ""), s)
     del body["model"]
     kwargs = {"model": actual_model, "messages": body.get("messages"), "api_key": provider.api_key, "metadata": {"user": k.name}, **body}
-    # Với OpenRouter hoặc Custom URL, ta dùng cơ chế openai compatible
     if provider.base_url: kwargs["api_base"] = provider.base_url; kwargs["custom_llm_provider"] = "openai"
     try:
         if body.get("stream", False):
