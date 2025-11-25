@@ -13,7 +13,6 @@ dependencies = [
     "jinja2",
     "httpx",
     "python-multipart",
-    "mcp",
     ]
 
 [tool.uv]
