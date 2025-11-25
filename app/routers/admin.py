@@ -8,7 +8,7 @@ from app.database import get_session
 from app.models import Provider, GatewayKey
 from app.security import verify_admin
 
-router = APIRouter(prefix="/api/admin", tags=["Admin"])
+router = APIRouter(prefix="/api/admin", tags=["Admin"], dependencies=[Depends(get_current_admin)])
 
 # --- PROVIDERS ---
 @router.post("/providers", dependencies=[Depends(verify_admin)])
