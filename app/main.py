@@ -33,17 +33,19 @@ class LoginRequest(BaseModel):
 
 @app.post("/api/auth/login")
 async def login(data: LoginRequest, response: Response, session: Session = Depends(get_session)):
-    """Đăng nhập và set HttpOnly Cookie"""
     if secrets.compare_digest(data.master_key, MASTER_KEY):
-        # Tạo session
         token = create_session(session)
-        # Set cookie (HttpOnly = True để JS không đọc được -> Chống XSS lấy key)
+        
+        # CẤU HÌNH QUAN TRỌNG CHO DOCKER/LOCALHOST:
+        # secure=False: Để chạy được trên HTTP
+        # samesite="lax": Để trình duyệt chấp nhận cookie dễ hơn
         response.set_cookie(
             key="gateway_session", 
             value=token, 
-            httponly=True, 
+            httponly=True,  # JS không đọc được (Bảo mật)
             max_age=7*24*60*60, 
-            samesite="strict"
+            secure=False,   # <--- SỬA THÀNH FALSE NẾU CHẠY LOCAL/DOCKER
+            samesite="lax"
         )
         return {"status": "ok"}
     else:
