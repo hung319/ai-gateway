@@ -127,88 +127,136 @@ async def fetch_provider_models(client: httpx.AsyncClient, provider: Provider):
         "permission": []
     } for m_id in fetched_ids]
 
-# --- 6. FRONTEND (MOBILE OPTIMIZED) ---
+# --- 6. FRONTEND (UPDATED: HYBRID CSS) ---
 html_panel = """
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>AI Gateway</title>
+    <title>AI Gateway Panel</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
+    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+
     <style>
-        body { -webkit-tap-highlight-color: transparent; }
-        .mobile-card { @apply bg-white p-5 rounded-xl shadow-sm border border-gray-100 mb-4; }
-        input, select { @apply text-base w-full border border-gray-300 p-3 rounded-lg mt-1 focus:ring-2 focus:ring-indigo-500 focus:outline-none; }
-        .btn-primary { @apply w-full bg-indigo-600 text-white font-bold py-3 rounded-lg shadow-md active:scale-95 transition-transform; }
-        .btn-danger { @apply text-red-500 hover:text-red-700 p-2; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f3f4f6; margin: 0; padding-bottom: 80px; }
+        
+        /* Utility Classes giả lập Tailwind (đề phòng CDN chết) */
+        .hidden { display: none !important; }
+        .fixed { position: fixed; }
+        .inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
+        .z-50 { z-index: 50; }
+        .flex { display: flex; }
+        .items-center { align-items: center; }
+        .justify-center { justify-content: center; }
+        .w-full { width: 100%; }
+        .h-full { height: 100%; }
+        
+        /* Custom UI */
+        .login-overlay { background-color: rgba(17, 24, 39, 0.95); }
+        .card { background: white; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); padding: 20px; margin-bottom: 20px; border: 1px solid #e5e7eb; }
+        .card-header { font-weight: bold; font-size: 1.125rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+        
+        /* Inputs & Buttons */
+        input, select {
+            width: 100%;
+            padding: 12px;
+            margin-top: 4px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 16px; /* Chặn zoom iOS */
+            box-sizing: border-box;
+            background-color: #fff;
+        }
+        input:focus, select:focus { outline: 2px solid #4f46e5; border-color: transparent; }
+        
+        .btn { width: 100%; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; transition: 0.2s; margin-top: 10px; }
+        .btn-primary { background-color: #4f46e5; color: white; }
+        .btn-primary:hover { background-color: #4338ca; }
+        
+        .btn-green { background-color: #059669; color: white; }
+        .btn-green:hover { background-color: #047857; }
+        
+        .btn-icon { background: none; border: none; cursor: pointer; padding: 8px; }
+        .text-red { color: #ef4444; }
+        
+        /* List Items */
+        .list-item { background-color: #f9fafb; padding: 12px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border: 1px solid #e5e7eb; }
+        .list-title { font-weight: 700; color: #312e81; }
+        .list-sub { font-size: 0.75rem; color: #6b7280; }
+
+        /* Container */
+        .container-custom { max-width: 800px; margin: 0 auto; padding: 20px; }
+        .header-custom { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 pb-20">
+<body>
 
-    <div id="loginModal" class="fixed inset-0 bg-gray-900 z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-2xl p-8 w-full max-w-sm shadow-2xl text-center">
-            <div class="mb-6 text-indigo-600 text-5xl"><i class="fa-solid fa-shield-cat"></i></div>
-            <h2 class="text-2xl font-bold mb-2">Gateway Login</h2>
-            <p class="text-gray-500 mb-6 text-sm">Nhập Master Key để quản trị</p>
+    <div id="loginModal" class="fixed inset-0 login-overlay z-50 flex items-center justify-center p-4 hidden">
+        <div class="card w-full max-w-sm" style="text-align: center;">
+            <div style="font-size: 3rem; color: #4f46e5; margin-bottom: 1rem;"><i class="fa-solid fa-shield-cat"></i></div>
+            <h2 style="font-size: 1.5rem; font-weight: bold; margin-bottom: 0.5rem;">Gateway Login</h2>
+            <p style="color: #6b7280; margin-bottom: 1.5rem;">Nhập Master Key</p>
             <form id="loginForm">
-                <input type="password" id="masterKeyInput" placeholder="sk-..." required class="mb-4 text-center">
-                <button type="submit" class="btn-primary">Truy cập Panel</button>
+                <input type="password" id="masterKeyInput" placeholder="sk-..." required style="text-align: center;">
+                <button type="submit" class="btn btn-primary">Truy cập Panel</button>
             </form>
         </div>
     </div>
 
-    <div id="appContent" class="max-w-3xl mx-auto px-4 py-6 hidden">
-        <header class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                <i class="fa-solid fa-network-wired text-indigo-600"></i> AI Gateway
+    <div id="appContent" class="container-custom hidden">
+        <header class="header-custom">
+            <h1 style="font-size: 1.5rem; font-weight: bold; color: #374151; display: flex; align-items: center; gap: 10px;">
+                <i class="fa-solid fa-network-wired" style="color: #4f46e5;"></i> AI Gateway
             </h1>
-            <button onclick="logout()" class="text-sm text-gray-500 hover:text-red-500"><i class="fa-solid fa-right-from-bracket"></i></button>
+            <button onclick="logout()" style="background: none; border: none; color: #6b7280; cursor: pointer;">
+                <i class="fa-solid fa-right-from-bracket"></i> Thoát
+            </button>
         </header>
 
-        <div class="mobile-card">
-            <h2 class="font-bold text-lg mb-4 flex items-center gap-2 text-indigo-700">
+        <div class="card" style="border-top: 4px solid #4f46e5;">
+            <div class="card-header" style="color: #4338ca;">
                 <i class="fa-solid fa-server"></i> Thêm Provider
-            </h2>
-            <form id="providerForm" class="space-y-4">
-                <div>
-                    <label class="text-xs font-bold text-gray-500 uppercase">Alias (Tên ngắn)</label>
-                    <input type="text" id="p_name" placeholder="vd: local, gpt, deepseek" required>
+            </div>
+            <form id="providerForm">
+                <div style="margin-bottom: 10px;">
+                    <label style="font-size: 0.75rem; font-weight: bold; color: #6b7280; text-transform: uppercase;">Alias (Tên ngắn)</label>
+                    <input type="text" id="p_name" placeholder="vd: local, gpt" required>
                 </div>
-                <div>
-                    <label class="text-xs font-bold text-gray-500 uppercase">Loại API</label>
+                <div style="margin-bottom: 10px;">
+                    <label style="font-size: 0.75rem; font-weight: bold; color: #6b7280; text-transform: uppercase;">Loại API</label>
                     <select id="p_type" required>
                         <option value="openai">OpenAI Standard (Official/Compatible)</option>
                         <option value="azure">Azure OpenAI</option>
                     </select>
                 </div>
-                <div>
-                    <label class="text-xs font-bold text-gray-500 uppercase">Base URL (Tùy chọn)</label>
+                <div style="margin-bottom: 10px;">
+                    <label style="font-size: 0.75rem; font-weight: bold; color: #6b7280; text-transform: uppercase;">Base URL (Tùy chọn)</label>
                     <input type="text" id="p_base" placeholder="http://host.docker.internal:11434">
-                    <p class="text-xs text-gray-400 mt-1">* Bắt buộc với Local/Ollama. Để trống nếu dùng OpenAI.</p>
                 </div>
-                <div>
-                    <label class="text-xs font-bold text-gray-500 uppercase">API Key</label>
+                <div style="margin-bottom: 10px;">
+                    <label style="font-size: 0.75rem; font-weight: bold; color: #6b7280; text-transform: uppercase;">API Key</label>
                     <input type="password" id="p_key" placeholder="sk-...">
                 </div>
-                <button type="submit" class="btn-primary"><i class="fa-solid fa-plus"></i> Lưu Provider</button>
+                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Lưu Provider</button>
             </form>
             
-            <ul id="providerList" class="mt-6 space-y-3"></ul>
+            <div id="providerList" style="margin-top: 20px;"></div>
         </div>
 
-        <div class="mobile-card">
-            <h2 class="font-bold text-lg mb-4 flex items-center gap-2 text-green-700">
+        <div class="card" style="border-top: 4px solid #059669;">
+            <div class="card-header" style="color: #047857;">
                 <i class="fa-solid fa-key"></i> Tạo Client Key
-            </h2>
-            <form id="keyForm" class="flex gap-2 mb-4">
-                <input type="text" id="k_name" placeholder="Tên App (vd: Cursor)" required class="mt-0">
-                <button type="submit" class="bg-green-600 text-white rounded-lg px-4 font-bold shadow">+ New</button>
+            </div>
+            <form id="keyForm" style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <input type="text" id="k_name" placeholder="Tên App (vd: Cursor)" required style="margin-top: 0;">
+                <button type="submit" class="btn btn-green" style="margin-top: 0; width: auto; padding: 0 20px;">+ Tạo</button>
             </form>
-            <div class="overflow-hidden rounded-lg border border-gray-200">
-                <table class="w-full text-sm text-left bg-gray-50">
-                    <tbody id="keyList" class="divide-y divide-gray-200"></tbody>
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
+                    <tbody id="keyList"></tbody>
                 </table>
             </div>
         </div>
@@ -253,21 +301,21 @@ html_panel = """
             
             if(providers) {
                 document.getElementById('providerList').innerHTML = providers.map(p => `
-                    <li class="bg-gray-100 p-3 rounded-lg flex justify-between items-center">
+                    <div class="list-item">
                         <div>
-                            <div class="font-bold text-indigo-900">${p.name}</div>
-                            <div class="text-xs text-gray-500 truncate max-w-[200px]">${p.base_url || 'Default OpenAI'}</div>
+                            <div class="list-title">${p.name}</div>
+                            <div class="list-sub">${p.base_url || 'Default OpenAI'}</div>
                         </div>
-                        <button onclick="delProvider('${p.name}')" class="btn-danger"><i class="fa-solid fa-trash"></i></button>
-                    </li>
+                        <button onclick="delProvider('${p.name}')" class="btn-icon text-red"><i class="fa-solid fa-trash"></i></button>
+                    </div>
                 `).join('');
             }
             if(keys) {
                 document.getElementById('keyList').innerHTML = keys.map(k => `
-                    <tr class="bg-white">
-                        <td class="p-3 font-medium">${k.name}</td>
-                        <td class="p-3 text-blue-600 font-mono text-xs cursor-pointer" onclick="copy('${k.key}')">Copy Key</td>
-                        <td class="p-3 text-right"><button onclick="delKey('${k.key}')" class="text-red-400"><i class="fa-solid fa-trash"></i></button></td>
+                    <tr style="border-bottom: 1px solid #f3f4f6;">
+                        <td style="padding: 10px; font-weight: 500;">${k.name}</td>
+                        <td style="padding: 10px; color: #2563eb; font-family: monospace; cursor: pointer;" onclick="copy('${k.key}')">Copy Key</td>
+                        <td style="padding: 10px; text-align: right;"><button onclick="delKey('${k.key}')" class="btn-icon text-red"><i class="fa-solid fa-trash"></i></button></td>
                     </tr>
                 `).join('');
             }
