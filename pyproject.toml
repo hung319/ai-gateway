@@ -14,6 +14,7 @@ dependencies = [
     "httpx",
     "python-multipart",
     "redis",
+    "langfuse",
     ]
 
 [tool.uv]
