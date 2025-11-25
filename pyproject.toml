@@ -12,8 +12,9 @@ dependencies = [
     "pydantic",
     "jinja2",
     "httpx",
-    "python-multipart",  # <--- THÊM DÒNG NÀY ĐỂ HỖ TRỢ UPLOAD FILE (STT)
-]
+    "python-multipart",
+    "mcp",
+    ]
 
 [tool.uv]
 package = true
