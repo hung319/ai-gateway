@@ -1,0 +1,20 @@
+[project]
+name = "ai-gateway"
+version = "0.1.0"
+description = "Unified AI Gateway with LiteLLM and FastAPI"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "sqlmodel",
+    "litellm",
+    "pydantic",
+    "jinja2",
+    "python-multipart",
+    "httpx",
+]
+
+[tool.uv]
+# Tối ưu hóa cho uv
+package = true
