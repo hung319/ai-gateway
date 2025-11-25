@@ -6,113 +6,201 @@
     <title>AI Gateway Admin</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <style>
-        /* --- VARIABLES --- */
-        :root { 
-            --bg-body:#f8fafc; --bg-card:#ffffff; --text-main:#1e293b; --text-sub:#64748b; 
-            --border:#e2e8f0; --primary:#2563eb; --primary-hover:#1d4ed8; --modal:rgba(0,0,0,0.6); 
+        /* --- CSS VARIABLES --- */
+        :root {
+            --bg-body: #f8fafc;
+            --bg-card: #ffffff;
+            --text-main: #1e293b;
+            --text-sub: #64748b;
+            --border: #e2e8f0;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg-hover: #f1f5f9;
+            --modal-overlay: rgba(0,0,0,0.6);
+            --input-bg: #ffffff;
             --code-bg: #f1f5f9;
         }
-        html.dark { 
-            --bg-body:#0f172a; --bg-card:#1e293b; --text-main:#f1f5f9; --text-sub:#94a3b8; 
-            --border:#334155; --primary:#3b82f6; --primary-hover:#60a5fa; --modal:rgba(0,0,0,0.85); 
+
+        html.dark {
+            --bg-body: #0f172a;
+            --bg-card: #1e293b;
+            --text-main: #f1f5f9;
+            --text-sub: #94a3b8;
+            --border: #334155;
+            --primary: #3b82f6;
+            --primary-hover: #60a5fa;
+            --bg-hover: #334155;
+            --modal-overlay: rgba(0,0,0,0.85);
+            --input-bg: #334155;
             --code-bg: #020617;
         }
+
+        /* --- RESET & LAYOUT --- */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg-body);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            transition: background 0.3s, color 0.3s;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        * { box-sizing: border-box; }
+        .hidden { display: none !important; }
         
-        /* --- LAYOUT --- */
-        body { font-family:-apple-system, BlinkMacSystemFont, sans-serif; background:var(--bg-body); color:var(--text-main); margin:0; padding:20px; transition:0.3s; font-size:15px; }
+        /* Container chính: Rộng 1200px để bảng thống kê thoải mái */
+        .container { max-width: 1200px; margin: 0 auto; padding-bottom: 50px; }
         
-        /* Container to ra (1200px) để bảng thống kê rộng rãi */
-        .container { max-width: 1200px; margin: 0 auto; }
-        
-        /* Class riêng để gom gọn các Form cấu hình lại cho đỡ bị bè ra quá */
+        /* Form nhỏ gọn: Để giữa màn hình cho đẹp */
         .compact-card { max-width: 600px; margin: 0 auto 20px auto; }
 
-        /* --- CARDS --- */
-        .card { background:var(--bg-card); padding:24px; border-radius:12px; border:1px solid var(--border); margin-bottom:20px; box-shadow:0 2px 4px -1px rgba(0,0,0,0.06); }
-        .card h3 { margin:0 0 20px 0; font-size:1.1rem; color:var(--primary); display:flex; align-items:center; gap:10px; }
-
-        /* --- FORM ELEMENTS --- */
-        label { display:block; font-size:0.75rem; font-weight:700; color:var(--text-sub); text-transform:uppercase; margin-bottom:6px; margin-top:15px; }
-        label:first-child { margin-top:0; }
-        input, select { width:100%; padding:10px 12px; background:var(--bg-card); color:var(--text-main); border:1px solid var(--border); border-radius:8px; font-size:1rem; outline:none; transition:0.2s; }
-        input:focus, select:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(59,130,246,0.15); }
+        /* --- HEADER --- */
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+        h1 { margin: 0; font-size: 1.5rem; color: var(--primary); display: flex; align-items: center; gap: 10px; }
         
+        .icon-btn {
+            background: none; border: none; color: var(--text-main);
+            font-size: 1.2rem; cursor: pointer; padding: 8px;
+            border-radius: 50%; transition: 0.2s;
+        }
+        .icon-btn:hover { background: var(--bg-hover); }
+
+        /* --- CARDS --- */
+        .card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 4px -1px rgba(0,0,0,0.06);
+        }
+        .card h3 { margin-top: 0; margin-bottom: 20px; font-size: 1.1rem; color: var(--primary); display: flex; align-items: center; gap: 10px; }
+
+        /* --- FORMS --- */
+        label {
+            display: block; font-size: 0.75rem; font-weight: 700;
+            color: var(--text-sub); text-transform: uppercase;
+            margin-bottom: 6px; margin-top: 15px;
+        }
+        label:first-child { margin-top: 0; }
+
+        input, select {
+            width: 100%; padding: 10px 12px;
+            background: var(--input-bg); color: var(--text-main);
+            border: 1px solid var(--border); border-radius: 8px;
+            font-size: 1rem; outline: none; transition: 0.2s;
+        }
+        input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+
         /* --- BUTTONS --- */
-        .btn { width:100%; padding:12px; border:none; border-radius:8px; font-weight:600; cursor:pointer; color:white; transition:0.2s; margin-top:20px; }
-        .btn:active { transform:scale(0.98); }
-        .btn-primary { background:var(--primary); } .btn-primary:hover { background:var(--primary-hover); }
-        .btn-success { background:#10b981; } .btn-success:hover { background:#059669; }
-        .btn-sm-danger { background:none; border:1px solid #ef4444; color:#ef4444; padding:4px 10px; border-radius:6px; cursor:pointer; font-size:0.85rem; }
-        .btn-sm-danger:hover { background:#ef4444; color:white; }
+        .btn {
+            width: 100%; padding: 12px; border: none; border-radius: 8px;
+            font-weight: 600; font-size: 1rem; cursor: pointer;
+            color: white; transition: 0.2s; margin-top: 20px;
+        }
+        .btn:active { transform: scale(0.98); }
+        .btn-primary { background: var(--primary); }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-success { background: #10b981; }
+        .btn-success:hover { background: #059669; }
+        
+        .btn-sm-danger {
+            background: none; border: 1px solid #ef4444; color: #ef4444;
+            padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 0.85rem;
+        }
+        .btn-sm-danger:hover { background: #ef4444; color: white; }
 
         /* --- TABS --- */
-        .tabs { display:flex; justify-content:center; gap:10px; margin-bottom:30px; border-bottom:1px solid var(--border); padding-bottom:15px; }
-        .tab-btn { background:none; border:none; font-size:1rem; font-weight:600; color:var(--text-sub); padding:8px 20px; cursor:pointer; border-radius:8px; transition:0.2s; }
-        .tab-btn:hover { background:var(--border); }
-        .tab-btn.active { background:var(--primary); color:white; }
+        .tabs {
+            display: flex; justify-content: center; gap: 10px;
+            margin-bottom: 30px; border-bottom: 1px solid var(--border);
+            padding-bottom: 15px;
+        }
+        .tab-btn {
+            background: none; border: none; font-size: 1rem; font-weight: 600;
+            color: var(--text-sub); padding: 8px 20px; cursor: pointer;
+            border-radius: 8px; transition: 0.2s;
+        }
+        .tab-btn:hover { background: var(--bg-hover); }
+        .tab-btn.active { background: var(--primary); color: white; }
 
         /* --- LIST & TABLE --- */
-        .list-item { display:flex; justify-content:space-between; align-items:center; padding:15px; border-bottom:1px solid var(--border); }
-        .list-item:last-child { border-bottom:none; }
-        
-        /* Style đặc biệt cho API Key */
+        .list-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 15px; border-bottom: 1px solid var(--border);
+        }
+        .list-item:last-child { border-bottom: none; }
+
+        /* API Key Box Style */
         .api-key-box {
             font-family: 'Consolas', 'Monaco', monospace;
             background: var(--code-bg);
             border: 1px dashed var(--border);
-            padding: 6px 10px;
-            border-radius: 6px;
-            color: var(--text-main);
-            cursor: pointer;
-            font-size: 0.9rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.2s;
-            max-width: 100%;
-            word-break: break-all;
+            padding: 6px 10px; border-radius: 6px;
+            color: var(--text-main); cursor: pointer;
+            font-size: 0.9rem; display: inline-flex; align-items: center; gap: 8px;
+            transition: all 0.2s; word-break: break-all;
         }
         .api-key-box:hover {
-            border-color: var(--primary);
-            color: var(--primary);
+            border-color: var(--primary); color: var(--primary);
             background: rgba(59,130,246,0.05);
         }
         .api-key-box i { font-size: 0.8rem; opacity: 0.5; }
         .api-key-box:hover i { opacity: 1; }
 
         .usage-badge {
-            background: var(--bg-body);
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 0.9rem;
+            background: var(--bg-hover); padding: 4px 10px;
+            border-radius: 20px; font-weight: bold; font-size: 0.9rem;
             border: 1px solid var(--border);
         }
 
-        /* --- MODAL & HEADER --- */
-        .modal { position:fixed; inset:0; background:var(--modal); display:flex; align-items:center; justify-content:center; z-index:100; backdrop-filter:blur(3px); }
-        .header-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; padding-bottom:20px; border-bottom:1px solid var(--border); }
-        .icon-btn { background:none; border:none; color:var(--text-main); font-size:1.2rem; cursor:pointer; padding:5px; margin-left:10px; }
+        /* --- MODAL (LOGIN) --- */
+        .modal {
+            position: fixed; inset: 0;
+            background: var(--modal-overlay);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 9999; backdrop-filter: blur(5px);
+        }
+        .modal-content {
+            background: var(--bg-card); padding: 40px;
+            border-radius: 16px; width: 90%; max-width: 400px;
+            text-align: center; border: 1px solid var(--border);
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+        }
     </style>
 </head>
 <body>
 
     <div id="loginModal" class="modal hidden">
-        <div class="card" style="width:350px; text-align:center;">
-            <h2 style="margin-top:0">Gateway Login</h2>
+        <div class="modal-content">
+            <h2 style="margin-top:0; color:var(--text-main)">🔒 Gateway Login</h2>
+            <p style="color:var(--text-sub); margin-bottom:20px">Nhập Master Key để quản trị</p>
             <form id="loginForm">
-                <input type="password" id="masterKeyInput" placeholder="Nhập Master Key..." style="text-align:center" required>
-                <button class="btn btn-primary">Truy cập</button>
+                <input type="password" id="masterKeyInput" placeholder="sk-..." style="text-align:center" required>
+                <button type="submit" class="btn btn-primary">Đăng Nhập</button>
             </form>
         </div>
     </div>
 
     <div id="app" class="container hidden">
         <div class="header-row">
-            <h1 style="margin:0; color:var(--primary); font-size:1.5rem;"><i class="fa-solid fa-layer-group"></i> AI Gateway</h1>
+            <h1><i class="fa-solid fa-layer-group"></i> AI Gateway</h1>
             <div>
-                <button class="icon-btn" onclick="toggleTheme()"><i class="fa-solid fa-circle-half-stroke"></i></button>
-                <button class="icon-btn" onclick="logout()" style="color:#ef4444"><i class="fa-solid fa-right-from-bracket"></i></button>
+                <button class="icon-btn" onclick="toggleTheme()" title="Đổi giao diện">
+                    <i class="fa-solid fa-circle-half-stroke"></i>
+                </button>
+                <button class="icon-btn" onclick="logout()" title="Đăng xuất" style="color:#ef4444">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </button>
             </div>
         </div>
 
@@ -123,9 +211,11 @@
 
         <div id="view-config">
             <div class="card compact-card" style="border-top: 4px solid var(--primary)">
-                <h3><i class="fa-solid fa-server"></i> Provider (Upstream)</h3>
+                <h3><i class="fa-solid fa-server"></i> Thêm Provider</h3>
                 <form id="providerForm">
-                    <label>Alias</label><input type="text" id="p_name" placeholder="vd: gpt, google" required>
+                    <label>Alias (Tên ngắn)</label>
+                    <input type="text" id="p_name" placeholder="vd: gpt, google, open" required>
+                    
                     <label>Loại API</label>
                     <select id="p_type" onchange="autoFillUrl()">
                         <option value="openai">OpenAI Standard</option>
@@ -133,18 +223,28 @@
                         <option value="openrouter">OpenRouter</option>
                         <option value="azure">Azure OpenAI</option>
                     </select>
-                    <label>Base URL</label><input type="text" id="p_base" placeholder="Auto fill...">
-                    <label>API Key</label><input type="password" id="p_key" placeholder="sk-..." required>
+                    
+                    <label>Base URL</label>
+                    <input type="text" id="p_base" placeholder="Tự động điền...">
+                    
+                    <label>API Key</label>
+                    <input type="password" id="p_key" placeholder="sk-..." required>
+                    
                     <button class="btn btn-primary">Lưu Provider</button>
                 </form>
-                <div id="providerList" style="margin-top:20px; border-top:1px solid var(--border)"></div>
+                
+                <div id="providerList" style="margin-top: 20px; border-top: 1px solid var(--border)"></div>
             </div>
 
             <div class="card compact-card" style="border-top: 4px solid #10b981">
                 <h3><i class="fa-solid fa-key"></i> Tạo Key Client</h3>
                 <form id="keyForm">
-                    <label>Tên Ứng Dụng</label><input type="text" id="k_name" placeholder="vd: Cursor, Web" required>
-                    <label>Custom Key (Tùy chọn)</label><input type="text" id="k_custom" placeholder="Để trống để tự sinh">
+                    <label>Tên Ứng Dụng</label>
+                    <input type="text" id="k_name" placeholder="vd: Cursor IDE, Website" required>
+                    
+                    <label>Custom Key (Tùy chọn)</label>
+                    <input type="text" id="k_custom" placeholder="Để trống sẽ tự sinh ngẫu nhiên">
+                    
                     <button class="btn btn-success">Tạo Key Mới</button>
                 </form>
             </div>
@@ -153,20 +253,22 @@
         <div id="view-stats" class="hidden">
             <div class="card">
                 <h3><i class="fa-solid fa-list-ol"></i> Danh sách Key & Lượt sử dụng</h3>
-                <div style="display:flex; padding:10px 15px; background:var(--bg-body); font-weight:bold; font-size:0.8rem; color:var(--text-sub); text-transform:uppercase; border-radius:8px 8px 0 0; border-bottom:2px solid var(--border);">
-                    <div style="width:25%">Tên Ứng Dụng</div>
-                    <div style="width:50%">API Key (Click to copy)</div>
-                    <div style="width:15%; text-align:center">Requests</div>
-                    <div style="width:10%; text-align:right">Action</div>
+                
+                <div style="display:flex; padding:10px 15px; background:var(--bg-hover); font-weight:bold; font-size:0.8rem; color:var(--text-sub); text-transform:uppercase; border-radius:8px 8px 0 0; border-bottom:2px solid var(--border);">
+                    <div style="width:30%">Tên Ứng Dụng</div>
+                    <div style="width:45%">API Key (Click to copy)</div>
+                    <div style="width:15%; text-align:center">Lượt dùng</div>
+                    <div style="width:10%; text-align:right">Hành động</div>
                 </div>
+                
                 <div id="keyList"></div>
             </div>
         </div>
     </div>
 
     <script>
-        const AUTH_KEY = 'gw_v3_final';
-        let currentToken = localStorage.getItem(AUTH_KEY);
+        const STORAGE_KEY = 'gateway_auth_token_v4';
+        let currentToken = localStorage.getItem(STORAGE_KEY);
 
         // --- THEME ---
         function initTheme() {
@@ -180,7 +282,7 @@
         }
         initTheme();
 
-        // --- UTILS ---
+        // --- UI UTILS ---
         function autoFillUrl() {
             const t = document.getElementById('p_type').value;
             const b = document.getElementById('p_base');
@@ -203,64 +305,82 @@
         async function copyText(text) {
             try {
                 await navigator.clipboard.writeText(text);
-                // Tạo hiệu ứng toast đơn giản
                 const el = document.createElement('div');
                 el.innerText = "Đã copy Key!";
-                el.style.position = 'fixed'; el.style.bottom = '20px'; el.style.right = '20px';
-                el.style.background = '#10b981'; el.style.color = 'white'; el.style.padding = '10px 20px';
-                el.style.borderRadius = '8px'; el.style.zIndex = '9999';
+                el.style.cssText = 'position:fixed; bottom:20px; right:20px; background:#10b981; color:white; padding:10px 20px; border-radius:8px; z-index:9999; box-shadow:0 4px 6px rgba(0,0,0,0.1);';
                 document.body.appendChild(el);
                 setTimeout(() => el.remove(), 2000);
-            } catch (err) { alert("Lỗi copy!"); }
+            } catch(e) { alert("Lỗi copy!"); }
         }
 
-        // --- API ---
-        async function api(path, method='GET', body=null) {
+        // --- API CLIENT ---
+        async function apiCall(path, method='GET', body=null) {
             try {
                 const res = await fetch(path, {
                     method, 
-                    headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${currentToken}`},
+                    headers: {'Content-Type':'application/json', 'Authorization': `Bearer ${currentToken}`},
                     body: body ? JSON.stringify(body) : null
                 });
-                if (res.status === 401) { logout(); return null; }
+                
+                if (res.status === 401 || res.status === 403) {
+                    // Token sai hoặc hết hạn -> Logout
+                    localStorage.removeItem(STORAGE_KEY);
+                    currentToken = null;
+                    checkAuth();
+                    return null;
+                }
+                
+                if (!res.ok) {
+                    const err = await res.json();
+                    alert("Lỗi: " + (err.detail || "Unknown error"));
+                    return null;
+                }
+                
                 return await res.json();
-            } catch { return null; }
+            } catch(e) {
+                console.error(e);
+                return null; // Lỗi mạng
+            }
         }
 
-        // --- LOADERS ---
+        // --- LOGIC LOAD DATA ---
         async function loadProviders() {
-            const d = await api('/api/admin/providers');
-            if(d) document.getElementById('providerList').innerHTML = d.map(p => `
-                <div class="list-item">
-                    <div>
-                        <div style="font-weight:bold; font-size:1rem;">${p.name}</div>
-                        <div style="font-size:0.85rem; color:var(--text-sub)">${p.base_url || 'Default URL'} <span style="background:var(--border); padding:1px 5px; border-radius:4px; font-size:0.75rem">${p.provider_type}</span></div>
+            const data = await apiCall('/api/admin/providers');
+            if (data) {
+                document.getElementById('providerList').innerHTML = data.map(p => `
+                    <div class="list-item">
+                        <div>
+                            <div style="font-weight:bold; font-size:1rem;">${p.name}</div>
+                            <div style="font-size:0.85rem; color:var(--text-sub)">
+                                <span style="background:var(--bg-hover); padding:1px 5px; border-radius:4px; border:1px solid var(--border)">${p.provider_type}</span>
+                                ${p.base_url || 'Default URL'}
+                            </div>
+                        </div>
+                        <button class="btn-sm-danger" onclick="delProvider('${p.name}')"><i class="fa-solid fa-trash"></i></button>
                     </div>
-                    <button class="btn-sm-danger" onclick="delP('${p.name}')"><i class="fa-solid fa-trash"></i></button>
-                </div>`).join('');
+                `).join('');
+            }
         }
 
         async function loadKeys() {
-            const d = await api('/api/admin/keys');
-            if(d) {
-                d.sort((a,b) => b.is_hidden - a.is_hidden);
-                document.getElementById('keyList').innerHTML = d.map(k => {
+            const data = await apiCall('/api/admin/keys');
+            if (data) {
+                data.sort((a,b) => b.is_hidden - a.is_hidden);
+                document.getElementById('keyList').innerHTML = data.map(k => {
                     const isMaster = k.is_hidden;
-                    const keyDisplay = isMaster ? 'MASTER KEY (Hidden)' : k.key;
-                    // Logic hiển thị Key
                     const keyHtml = isMaster 
-                        ? `<span class="api-key-box" style="border-color:#d97706; color:#d97706; background:#fffbeb; cursor:default">${keyDisplay}</span>`
-                        : `<span class="api-key-box" onclick="copyText('${k.key}')" title="Bấm để copy">${k.key} <i class="fa-regular fa-copy"></i></span>`;
-
+                        ? `<span class="api-key-box" style="color:#d97706; border-color:#d97706; background:#fffbeb; cursor:default">MASTER KEY (Hidden)</span>`
+                        : `<span class="api-key-box" onclick="copyText('${k.key}')" title="Click để copy">${k.key} <i class="fa-regular fa-copy"></i></span>`;
+                    
                     return `
-                    <div class="list-item" style="padding: 15px;">
-                        <div style="width:25%; font-weight:bold;">${k.name}</div>
-                        <div style="width:50%;">${keyHtml}</div>
+                    <div class="list-item">
+                        <div style="width:30%; font-weight:bold;">${k.name}</div>
+                        <div style="width:45%;">${keyHtml}</div>
                         <div style="width:15%; text-align:center;">
                             <span class="usage-badge" style="color:${k.usage_count > 0 ? '#10b981' : 'var(--text-sub)'}">${k.usage_count}</span>
                         </div>
                         <div style="width:10%; text-align:right;">
-                            ${!isMaster ? `<button class="btn-sm-danger" onclick="delK('${k.key}')"><i class="fa-solid fa-trash"></i></button>` : ''}
+                            ${!isMaster ? `<button class="btn-sm-danger" onclick="delKey('${k.key}')"><i class="fa-solid fa-trash"></i></button>` : ''}
                         </div>
                     </div>`;
                 }).join('');
@@ -268,17 +388,72 @@
         }
 
         // --- HANDLERS ---
-        document.getElementById('loginForm').onsubmit = (e) => { e.preventDefault(); const v = document.getElementById('masterKeyInput').value.trim(); if(v){ localStorage.setItem(AUTH_KEY, v); currentToken=v; checkAuth(); }};
-        document.getElementById('providerForm').onsubmit = async(e)=>{e.preventDefault(); await api('/api/admin/providers','POST',{name:document.getElementById('p_name').value, provider_type:document.getElementById('p_type').value, api_key:document.getElementById('p_key').value, base_url:document.getElementById('p_base').value||null}); e.target.reset(); loadProviders(); };
-        document.getElementById('keyForm').onsubmit = async(e)=>{e.preventDefault(); const res = await api('/api/admin/keys','POST',{name:document.getElementById('k_name').value, custom_key:document.getElementById('k_custom').value||null}); if(res){alert("Tạo thành công!"); e.target.reset(); switchTab('stats');}};
-        
-        async function delP(n){if(confirm('Xóa Provider?')) {await api(`/api/admin/providers/${n}`,'DELETE'); loadProviders();}}
-        async function delK(k){if(confirm('Thu hồi Key?')) {await api(`/api/admin/keys/${k}`,'DELETE'); loadKeys();}}
-        function logout() { localStorage.removeItem(AUTH_KEY); location.reload(); }
-        function checkAuth() {
-            if(!currentToken) document.getElementById('loginModal').classList.remove('hidden');
-            else { document.getElementById('loginModal').classList.add('hidden'); document.getElementById('app').classList.remove('hidden'); loadProviders(); }
+        document.getElementById('loginForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const key = document.getElementById('masterKeyInput').value.trim();
+            if (!key) return;
+            
+            // Test login bằng cách gọi thử 1 API
+            currentToken = key; // Tạm set
+            const test = await apiCall('/api/admin/providers');
+            
+            if (test !== null) {
+                // Login thành công
+                localStorage.setItem(STORAGE_KEY, key);
+                checkAuth();
+            } else {
+                alert("Key không đúng hoặc server lỗi!");
+                currentToken = null;
+            }
+        };
+
+        function logout() {
+            localStorage.removeItem(STORAGE_KEY);
+            location.reload();
         }
+
+        function checkAuth() {
+            if (!currentToken) {
+                document.getElementById('loginModal').classList.remove('hidden');
+                document.getElementById('app').classList.add('hidden');
+            } else {
+                document.getElementById('loginModal').classList.add('hidden');
+                document.getElementById('app').classList.remove('hidden');
+                loadProviders();
+            }
+        }
+
+        document.getElementById('providerForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const payload = {
+                name: document.getElementById('p_name').value,
+                provider_type: document.getElementById('p_type').value,
+                api_key: document.getElementById('p_key').value,
+                base_url: document.getElementById('p_base').value || null
+            };
+            await apiCall('/api/admin/providers', 'POST', payload);
+            e.target.reset();
+            loadProviders();
+        };
+
+        document.getElementById('keyForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const payload = {
+                name: document.getElementById('k_name').value,
+                custom_key: document.getElementById('k_custom').value || null
+            };
+            const res = await apiCall('/api/admin/keys', 'POST', payload);
+            if (res) {
+                alert("Tạo Key thành công!");
+                e.target.reset();
+                switchTab('stats');
+            }
+        };
+
+        async function delProvider(n) { if(confirm('Xóa Provider này?')) { await apiCall(`/api/admin/providers/${n}`, 'DELETE'); loadProviders(); } }
+        async function delKey(k) { if(confirm('Thu hồi Key này?')) { await apiCall(`/api/admin/keys/${k}`, 'DELETE'); loadKeys(); } }
+
+        // Init
         checkAuth();
     </script>
 </body>
