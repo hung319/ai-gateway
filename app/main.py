@@ -6,6 +6,7 @@ from typing import Optional, List, Dict, Any
 from contextlib import asynccontextmanager
 
 import httpx
+import redis.asyncio as redis # Redis Async
 from fastapi import FastAPI, HTTPException, Request, Depends, Security, UploadFile, File, Form
 from fastapi.responses import HTMLResponse, StreamingResponse, JSONResponse, RedirectResponse
 from fastapi.security import APIKeyHeader
@@ -16,13 +17,18 @@ from litellm import acompletion, image_generation, speech, transcription
 # --- 1. CONFIGURATION ---
 DB_PATH = os.getenv("DB_PATH", "gateway.db")
 MASTER_KEY = os.getenv("MASTER_KEY", "sk-master-secret-123") 
+REDIS_URL = os.getenv("REDIS_URL", "") # Để trống sẽ không dùng Cache
 MODEL_FETCH_TIMEOUT = 10.0
 MASTER_TRACKER_ID = "MASTER_ADMIN_TRACKER"
+CACHE_TTL = 300 # 5 Phút cache cho list models
 
 sqlite_url = f"sqlite:///{DB_PATH}"
 engine = create_engine(sqlite_url, connect_args={"check_same_thread": False})
 
-# --- 2. DATABASE MODELS ---
+# --- 2. REDIS CLIENT ---
+redis_client: Optional[redis.Redis] = None
+
+# --- 3. DATABASE MODELS ---
 class Provider(SQLModel, table=True):
     name: str = Field(primary_key=True, index=True) 
     api_key: str
@@ -47,7 +53,7 @@ def get_session():
     with Session(engine) as session:
         yield session
 
-# --- 3. AUTH LOGIC ---
+# --- 4. AUTH LOGIC ---
 api_key_header = APIKeyHeader(name="Authorization", auto_error=False)
 
 def get_token_from_header(header: str) -> str:
@@ -74,15 +80,32 @@ async def verify_usage_access(header: str = Security(api_key_header), session: S
     session.add(key_record); session.commit(); session.refresh(key_record)
     return key_record
 
-# --- 4. LIFECYCLE ---
+# --- 5. LIFECYCLE ---
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Startup
     create_db_and_tables()
+    
+    # Connect Redis
+    global redis_client
+    if REDIS_URL:
+        try:
+            redis_client = redis.from_url(REDIS_URL, decode_responses=True)
+            await redis_client.ping()
+            print(f"✅ Redis Connected: {REDIS_URL}")
+        except Exception as e:
+            print(f"⚠️ Redis Connection Failed: {e}. Caching disabled.")
+            redis_client = None
+            
     yield
+    
+    # Shutdown
+    if redis_client:
+        await redis_client.close()
 
-app = FastAPI(lifespan=lifespan, title="AI Gateway v3.1 Clean")
+app = FastAPI(lifespan=lifespan, title="AI Gateway v3.2 Redis+Dark")
 
-# --- 5. HELPER ---
+# --- 6. HELPER ---
 async def fetch_provider_models(client: httpx.AsyncClient, provider: Provider):
     api_base = provider.base_url
     if not api_base:
@@ -111,10 +134,9 @@ async def fetch_provider_models(client: httpx.AsyncClient, provider: Provider):
     return [{"id": f"{provider.name}/{m_id}", "object": "model", "created": 1700000000, "owned_by": provider.provider_type, "permission": []} for m_id in fetched_ids]
 
 def parse_model_alias(raw_model: str, session: Session):
-    # Smart Routing cho Cursor (khi gửi gpt-4o trần)
+    # Smart Routing
     if "/" not in raw_model:
         providers = session.exec(select(Provider)).all()
-        # Ưu tiên OpenRouter/OpenAI/Azure
         for p in providers:
             if p.provider_type in ["openrouter", "openai", "azure"]: return p, raw_model
         if providers: return providers[0], raw_model
@@ -125,7 +147,7 @@ def parse_model_alias(raw_model: str, session: Session):
     if not provider: raise HTTPException(404, f"Provider '{alias}' not found")
     return provider, actual_model
 
-# --- 6. FRONTEND (CLEAN UI) ---
+# --- 7. FRONTEND (DARK MODE SUPPORT) ---
 html_panel = """
 <!DOCTYPE html>
 <html lang="vi">
@@ -135,55 +157,97 @@ html_panel = """
     <title>AI Gateway Admin</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <style>
-        :root { --primary: #2563eb; --bg: #f8fafc; --text: #1e293b; --border: #e2e8f0; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 50px; font-size: 16px; }
+        /* --- THEME VARIABLES --- */
+        :root {
+            --bg-body: #f8fafc;
+            --bg-card: #ffffff;
+            --bg-input: #ffffff;
+            --text-main: #1e293b;
+            --text-sub: #64748b;
+            --border: #e2e8f0;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg-hover: #f1f5f9;
+            --modal-overlay: rgba(0,0,0,0.7);
+        }
+
+        html.dark {
+            --bg-body: #0f172a;
+            --bg-card: #1e293b;
+            --bg-input: #334155;
+            --text-main: #f1f5f9;
+            --text-sub: #94a3b8;
+            --border: #334155;
+            --primary: #3b82f6;
+            --primary-hover: #60a5fa;
+            --bg-hover: #334155;
+            --modal-overlay: rgba(0,0,0,0.85);
+        }
+
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg-body); color: var(--text-main); margin: 0; padding-bottom: 50px; font-size: 16px; transition: background 0.3s, color 0.3s; }
         * { box-sizing: border-box; }
         .hidden { display: none !important; }
         .container { max-width: 800px; margin: 0 auto; padding: 20px; }
         
-        .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
-        .tab-btn { background: none; border: none; font-size: 1rem; font-weight: 600; color: #64748b; padding: 10px 20px; cursor: pointer; border-radius: 8px; transition: 0.2s; }
-        .tab-btn:hover { background: #e2e8f0; }
-        .tab-btn.active { background: #eff6ff; color: var(--primary); }
+        /* Header & Toggle */
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .theme-toggle { background: none; border: 1px solid var(--border); color: var(--text-main); padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 1.2rem; margin-right: 10px; }
+        .logout-btn { border: none; background: none; color: var(--text-sub); cursor: pointer; font-weight: 600; }
+        .logout-btn:hover { color: #ef4444; }
 
-        .card { background: white; border-radius: 12px; padding: 24px; margin-bottom: 20px; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .card-title { font-weight: 700; margin-bottom: 20px; display: flex; gap: 10px; align-items: center; font-size: 1.1rem; color: #0f172a; }
+        /* Tabs */
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 10px; }
+        .tab-btn { background: none; border: none; font-size: 1rem; font-weight: 600; color: var(--text-sub); padding: 10px 20px; cursor: pointer; border-radius: 8px; transition: 0.2s; }
+        .tab-btn:hover { background: var(--bg-hover); }
+        .tab-btn.active { background: var(--primary); color: white; }
+
+        /* Cards */
+        .card { background: var(--bg-card); border-radius: 12px; padding: 24px; margin-bottom: 20px; border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .card-title { font-weight: 700; margin-bottom: 20px; display: flex; gap: 10px; align-items: center; font-size: 1.1rem; color: var(--primary); }
         
-        input, select { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; margin-top: 6px; font-size: 15px; margin-bottom: 16px; transition: 0.2s; }
-        input:focus, select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
-        label { font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+        /* Inputs */
+        input, select { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; margin-top: 6px; font-size: 15px; margin-bottom: 16px; transition: 0.2s; background: var(--bg-input); color: var(--text-main); }
+        input:focus, select:focus { outline: none; border-color: var(--primary); }
+        label { font-size: 0.75rem; font-weight: 700; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.5px; }
         
+        /* Buttons */
         .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: 600; color: white; cursor: pointer; transition: 0.2s; }
         .btn:active { transform: scale(0.98); }
         .btn-primary { background: var(--primary); }
+        .btn-primary:hover { background: var(--primary-hover); }
         .btn-green { background: #10b981; }
         .btn-danger { background: #ef4444; width: auto; padding: 6px 12px; font-size: 0.85rem; }
         
+        /* List & Table */
+        .list-item { background: var(--bg-body); padding: 12px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border); }
         table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-        th { text-align: left; padding: 12px; border-bottom: 2px solid #f1f5f9; color: #64748b; font-size: 0.8rem; text-transform: uppercase; }
-        td { padding: 12px; border-bottom: 1px solid #f1f5f9; }
+        th { text-align: left; padding: 12px; border-bottom: 2px solid var(--border); color: var(--text-sub); font-size: 0.8rem; text-transform: uppercase; }
+        td { padding: 12px; border-bottom: 1px solid var(--border); color: var(--text-main); }
         
-        .badge { background: #eff6ff; color: var(--primary); padding: 4px 8px; border-radius: 6px; font-family: monospace; font-size: 0.85rem; cursor: pointer; }
-        .badge:hover { background: #dbeafe; }
-        .badge-master { background: #fffbeb; color: #d97706; }
+        .badge { background: var(--bg-hover); color: var(--primary); padding: 4px 8px; border-radius: 6px; font-family: monospace; font-size: 0.85rem; cursor: pointer; border: 1px solid var(--border); }
+        .badge-master { background: #fef3c7; color: #d97706; }
         
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 99; backdrop-filter: blur(2px); }
-        .modal-box { background: white; padding: 40px; border-radius: 16px; width: 90%; max-width: 380px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
+        /* Modal */
+        .modal-overlay { position: fixed; inset: 0; background: var(--modal-overlay); display: flex; justify-content: center; align-items: center; z-index: 99; backdrop-filter: blur(2px); }
+        .modal-box { background: var(--bg-card); padding: 40px; border-radius: 16px; width: 90%; max-width: 380px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); border: 1px solid var(--border); }
     </style>
 </head>
 <body>
     <div id="loginModal" class="modal-overlay hidden">
         <div class="modal-box">
-            <h2 style="margin-top:0; color:#0f172a">Gateway Login</h2>
-            <p style="color:#64748b; margin-bottom:20px">Nhập Master Key để tiếp tục</p>
+            <h2 style="margin-top:0; color:var(--text-main)">Gateway Login</h2>
+            <p style="color:var(--text-sub); margin-bottom:20px">Nhập Master Key để tiếp tục</p>
             <form id="loginForm"><input type="password" id="masterKeyInput" placeholder="sk-..." required style="text-align:center"><button class="btn btn-primary">Truy cập Dashboard</button></form>
         </div>
     </div>
     
     <div id="appContent" class="container hidden">
-        <header style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
-            <h1 style="margin:0; color:#0f172a; font-size:1.5rem;"><i class="fa-solid fa-layer-group" style="color:var(--primary)"></i> AI Gateway</h1>
-            <button onclick="logout()" style="border:none; background:none; color:#64748b; cursor:pointer; font-weight:600"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+        <header>
+            <h1 style="margin:0; font-size:1.5rem;"><i class="fa-solid fa-layer-group" style="color:var(--primary)"></i> AI Gateway</h1>
+            <div>
+                <button class="theme-toggle" onclick="toggleTheme()"><i class="fa-solid fa-moon"></i></button>
+                <button onclick="logout()" class="logout-btn"><i class="fa-solid fa-right-from-bracket"></i></button>
+            </div>
         </header>
         
         <div class="tabs">
@@ -193,7 +257,7 @@ html_panel = """
 
         <div id="view-config">
             <div class="card">
-                <div class="card-title" style="color:var(--primary)"><i class="fa-solid fa-server"></i> Thêm Provider Mới</div>
+                <div class="card-title"><i class="fa-solid fa-server"></i> Thêm Provider Mới</div>
                 <form id="providerForm">
                     <label>Alias (Tên ngắn)</label><input type="text" id="p_name" placeholder="vd: open, gpt, local" required>
                     <label>Loại API</label>
@@ -210,7 +274,7 @@ html_panel = """
             </div>
             
             <div class="card">
-                <div class="card-title" style="color:#10b981"><i class="fa-solid fa-key"></i> Tạo Client Key</div>
+                <div class="card-title"><i class="fa-solid fa-key"></i> Tạo Client Key</div>
                 <form id="createKeyForm">
                     <label>Tên Ứng Dụng</label><input type="text" id="k_name" placeholder="vd: Cursor IDE" required>
                     <label>Custom Key (Tùy chọn)</label><input type="text" id="k_custom" placeholder="Để trống để tự tạo">
@@ -229,6 +293,29 @@ html_panel = """
 
     <script>
         const KEY = 'gw_v3_clean'; let curr = localStorage.getItem(KEY);
+        
+        // THEME LOGIC
+        function initTheme() {
+            const theme = localStorage.getItem('theme');
+            if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+                document.querySelector('.theme-toggle i').className = 'fa-solid fa-sun';
+            }
+        }
+        function toggleTheme() {
+            const html = document.documentElement;
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+                document.querySelector('.theme-toggle i').className = 'fa-solid fa-moon';
+            } else {
+                html.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+                document.querySelector('.theme-toggle i').className = 'fa-solid fa-sun';
+            }
+        }
+        initTheme();
+
         function autoFillBaseUrl() {
             const t = document.getElementById('p_type').value;
             const b = document.getElementById('p_base');
@@ -255,11 +342,11 @@ html_panel = """
 
         async function loadProviders() {
             const ps = await api('/api/admin/providers');
-            if(ps) document.getElementById('providerList').innerHTML = ps.map(p => `<div style="background:#f1f5f9; padding:12px; border-radius:8px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;"><div><div style="font-weight:700; color:#0f172a">${p.name}</div><div style="font-size:0.85rem; color:#64748b">${p.base_url||'Default'}</div></div><button onclick="delProvider('${p.name}')" style="border:none; background:none; color:#ef4444; cursor:pointer;"><i class="fa-solid fa-trash"></i></button></div>`).join('');
+            if(ps) document.getElementById('providerList').innerHTML = ps.map(p => `<div class="list-item"><div><div style="font-weight:700; color:var(--text-main)">${p.name}</div><div style="font-size:0.85rem; color:var(--text-sub)">${p.base_url||'Default'}</div></div><button onclick="delProvider('${p.name}')" style="border:none; background:none; color:#ef4444; cursor:pointer;"><i class="fa-solid fa-trash"></i></button></div>`).join('');
         }
         async function loadKeys() {
             const ks = await api('/api/admin/keys');
-            if(ks) { ks.sort((a,b) => b.is_hidden - a.is_hidden); document.getElementById('statsList').innerHTML = ks.map(k => `<tr><td style="font-weight:600">${k.name}</td><td>${k.is_hidden?'<span class="badge badge-master">MASTER KEY</span>':`<span class="badge" onclick="copy('${k.key}')">${k.key}</span>`}</td><td style="text-align:center;font-weight:bold;color:${k.usage_count>0?'#10b981':'#94a3b8'}">${k.usage_count}</td><td style="text-align:right">${!k.is_hidden?`<button onclick="delKey('${k.key}')" class="btn-danger"><i class="fa-solid fa-trash"></i></button>`:''}</td></tr>`).join(''); }
+            if(ks) { ks.sort((a,b) => b.is_hidden - a.is_hidden); document.getElementById('statsList').innerHTML = ks.map(k => `<tr><td style="font-weight:600">${k.name}</td><td>${k.is_hidden?'<span class="badge badge-master">MASTER KEY</span>':`<span class="badge" onclick="copy('${k.key}')">${k.key}</span>`}</td><td style="text-align:center;font-weight:bold;color:${k.usage_count>0?'#10b981':'var(--text-sub)'}">${k.usage_count}</td><td style="text-align:right">${!k.is_hidden?`<button onclick="delKey('${k.key}')" class="btn-danger"><i class="fa-solid fa-trash"></i></button>`:''}</td></tr>`).join(''); }
         }
         
         document.getElementById('providerForm').onsubmit = async (e) => { e.preventDefault(); await api('/api/admin/providers', 'POST', { name: document.getElementById('p_name').value, provider_type: document.getElementById('p_type').value, api_key: document.getElementById('p_key').value||"sk-dummy", base_url: document.getElementById('p_base').value||null }); e.target.reset(); loadProviders(); };
@@ -274,7 +361,7 @@ html_panel = """
 </html>
 """
 
-# --- 7. ROUTES ---
+# --- 8. ROUTES ---
 @app.get("/")
 async def root(): return RedirectResponse(url="/panel")
 @app.get("/panel", response_class=HTMLResponse)
@@ -299,21 +386,39 @@ async def list_k(s: Session=Depends(get_session)): return s.exec(select(GatewayK
 @app.delete("/api/admin/keys/{k}", dependencies=[Depends(verify_admin)])
 async def del_k(k: str, s: Session=Depends(get_session)): o=s.get(GatewayKey,k); (s.delete(o),s.commit()) if o and not o.is_hidden else None; return {"status":"ok"}
 
+# --- REDIS CACHED MODELS ENDPOINT ---
 @app.get("/v1/models")
 async def list_models(k: GatewayKey=Depends(verify_usage_access), s: Session=Depends(get_session)):
+    # 1. Check Cache
+    cache_key = "gateway:models"
+    if redis_client:
+        try:
+            cached_data = await redis_client.get(cache_key)
+            if cached_data: return json.loads(cached_data)
+        except: pass
+
+    # 2. Fetch if miss
     providers = s.exec(select(Provider)).all()
     async with httpx.AsyncClient() as client:
         tasks = [fetch_provider_models(client, p) for p in providers]
         results = await asyncio.gather(*tasks)
-    return {"object": "list", "data": [m for sub in results for m in sub]}
+    
+    response_data = {"object": "list", "data": [m for sub in results for m in sub]}
+    
+    # 3. Set Cache
+    if redis_client:
+        try:
+            await redis_client.set(cache_key, json.dumps(response_data), ex=CACHE_TTL)
+        except: pass
+        
+    return response_data
 
-# --- 8. AI ENDPOINTS (CURSOR COMPATIBLE) ---
+# --- 9. AI ENDPOINTS ---
 @app.post("/v1/chat/completions")
 async def chat_completions(req: Request, k: GatewayKey=Depends(verify_usage_access), s: Session=Depends(get_session)):
     try: body = await req.json()
     except: raise HTTPException(400, "JSON")
 
-    # FIX CURSOR
     if "messages" not in body and "input" in body: body["messages"] = body["input"]; del body["input"]
     
     provider, actual_model = parse_model_alias(body.get("model", ""), s)
