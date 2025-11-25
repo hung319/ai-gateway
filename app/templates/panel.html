@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI Gateway Panel</title>
+    <title>AI Gateway Admin</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <style>
         /* --- VARIABLES --- */
@@ -15,6 +15,7 @@
             --danger: #ef4444; --success: #10b981;
             --input-bg: #f9fafb; --code-bg: #f1f5f9;
             --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --modal-overlay: rgba(0,0,0,0.6);
         }
 
         html.dark {
@@ -24,6 +25,7 @@
             --primary: #60a5fa; --primary-hover: #3b82f6;
             --input-bg: #0f172a; --code-bg: #020617;
             --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+            --modal-overlay: rgba(0,0,0,0.85);
         }
 
         body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg-body); color: var(--text-main); margin: 0; padding: 20px; transition: 0.3s; font-size: 15px; }
@@ -35,13 +37,14 @@
         /* --- HEADER --- */
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 1px solid var(--border); padding-bottom: 20px; }
         .brand { font-size: 1.5rem; font-weight: 800; color: var(--primary); display: flex; align-items: center; gap: 10px; }
-        .action-btn { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-main); padding: 8px 12px; border-radius: 8px; cursor: pointer; margin-left: 8px; }
+        .action-btn { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-main); padding: 8px 12px; border-radius: 8px; cursor: pointer; margin-left: 8px; font-size: 1.1rem; transition: 0.2s; }
+        .action-btn:hover { background: var(--border); }
 
         /* --- TABS --- */
-        .tabs { display: flex; gap: 10px; margin-bottom: 30px; overflow-x: auto; padding-bottom: 5px; -webkit-overflow-scrolling: touch; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 30px; overflow-x: auto; padding-bottom: 5px; justify-content: center; }
         .tab-btn { 
             background: transparent; border: none; font-size: 1rem; font-weight: 600; color: var(--text-muted); 
-            padding: 10px 20px; cursor: pointer; border-radius: 30px; white-space: nowrap; transition: 0.2s;
+            padding: 10px 25px; cursor: pointer; border-radius: 30px; white-space: nowrap; transition: 0.2s;
         }
         .tab-btn:hover { background: var(--bg-card); color: var(--primary); }
         .tab-btn.active { background: var(--bg-card); color: var(--primary); border: 1px solid var(--border); box-shadow: var(--shadow); }
@@ -50,70 +53,62 @@
         .card { background: var(--bg-card); border-radius: 16px; padding: 25px; margin-bottom: 24px; border: 1px solid var(--border); box-shadow: var(--shadow); }
         .card h3 { margin: 0 0 20px 0; font-size: 1.2rem; color: var(--text-main); display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); padding-bottom: 15px; }
         
-        /* Grid Layout cho Form (Desktop) */
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         
         label { display: block; font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; }
-        input, select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main); font-size: 1rem; outline: none; }
-        input:focus, select:focus { border-color: var(--primary); }
+        input, select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main); font-size: 1rem; outline: none; transition: 0.2s; }
+        input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
 
-        .btn { width: 100%; padding: 12px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; color: white; transition: 0.2s; margin-top: 10px; }
-        .btn-primary { background: var(--primary); }
-        .btn-success { background: var(--success); }
-        .btn-danger-ghost { background: transparent; border: 1px solid var(--danger); color: var(--danger); padding: 5px 10px; border-radius: 6px; width: auto; font-size: 0.85rem; }
+        .btn { width: 100%; padding: 12px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; color: white; transition: 0.2s; margin-top: 10px; position: relative; overflow: hidden; }
+        .btn:active { transform: scale(0.98); }
+        .btn-primary { background: linear-gradient(135deg, var(--primary), #2563eb); box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2); }
+        .btn-success { background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2); }
+        .btn-danger-ghost { background: transparent; border: 1px solid var(--danger); color: var(--danger); padding: 6px 12px; border-radius: 6px; width: auto; font-size: 0.85rem; margin: 0; }
+        .btn-danger-ghost:hover { background: var(--danger); color: white; }
 
-        /* --- LISTS & TABLES (Desktop Default) --- */
-        .list-header { display: flex; padding: 10px 15px; background: var(--input-bg); font-weight: bold; font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; border-radius: 8px 8px 0 0; border-bottom: 1px solid var(--border); }
-        .list-item { display: flex; align-items: center; padding: 15px; border-bottom: 1px solid var(--border); font-size: 0.95rem; }
+        /* --- LISTS & TABLES --- */
+        .list-header { display: flex; padding: 12px 15px; background: var(--input-bg); font-weight: 800; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; border-radius: 8px 8px 0 0; border-bottom: 1px solid var(--border); }
+        .list-item { display: flex; align-items: center; padding: 15px; border-bottom: 1px solid var(--border); font-size: 0.95rem; transition: background 0.2s; }
+        .list-item:hover { background: var(--input-bg); }
         .list-item:last-child { border-bottom: none; }
 
-        .col-1 { width: 25%; font-weight: 600; }
+        .col-1 { width: 25%; font-weight: 700; color: var(--text-main); }
         .col-2 { width: 45%; word-break: break-all; }
         .col-3 { width: 20%; text-align: center; }
         .col-4 { width: 10%; text-align: right; }
 
-        /* Copyable Box */
         .copy-box { 
-            font-family: monospace; background: var(--code-bg); border: 1px dashed var(--border); 
+            font-family: 'Monaco', monospace; background: var(--code-bg); border: 1px dashed var(--border); 
             padding: 6px 10px; border-radius: 6px; color: var(--primary); cursor: pointer; 
-            display: inline-block; transition: 0.2s; max-width: 100%; overflow: hidden; text-overflow: ellipsis;
+            display: inline-block; transition: 0.2s; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+            user-select: none; -webkit-user-select: none;
         }
-        .copy-box:hover { background: var(--primary); color: white; border-color: var(--primary); }
+        .copy-box:hover { border-color: var(--primary); background: rgba(59, 130, 246, 0.1); }
         .copy-box:active { transform: scale(0.95); }
 
-        /* --- RESPONSIVE MOBILE --- */
+        /* --- RESPONSIVE --- */
         @media (max-width: 768px) {
             body { padding: 10px; }
             .grid-2 { grid-template-columns: 1fr; gap: 10px; }
-            
-            /* Ẩn header bảng trên mobile */
             .list-header { display: none; }
-            
-            /* Chuyển row thành card stack */
-            .list-item { flex-direction: column; align-items: flex-start; gap: 10px; background: var(--input-bg); margin-bottom: 10px; border-radius: 8px; border: 1px solid var(--border); padding: 15px; }
-            
+            .list-item { flex-direction: column; align-items: flex-start; gap: 10px; background: var(--bg-card); margin-bottom: 10px; border-radius: 12px; border: 1px solid var(--border); padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
             .col-1, .col-2, .col-3, .col-4 { width: 100%; text-align: left; }
+            .col-1::before { content: "Alias: "; color: var(--text-muted); font-weight: normal; font-size: 0.85rem; }
+            .col-2::before { content: "Value: "; color: var(--text-muted); font-weight: normal; display: block; margin-bottom: 5px; font-size: 0.85rem; }
+            .col-3::before { content: "Status: "; color: var(--text-muted); font-weight: normal; font-size: 0.85rem; }
+            .col-4 { text-align: right; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); }
             
-            /* Thêm label giả cho mobile */
-            .col-1::before { content: "Alias: "; color: var(--text-muted); font-size: 0.8rem; font-weight: normal; }
-            .col-2::before { content: "Value: "; color: var(--text-muted); font-size: 0.8rem; font-weight: normal; display: block; margin-bottom: 4px; }
-            .col-3::before { content: "Info: "; color: var(--text-muted); font-size: 0.8rem; font-weight: normal; }
-            
-            .col-4 { text-align: right; margin-top: 10px; border-top: 1px dashed var(--border); padding-top: 10px; }
-            
-            /* Riêng cho tab Model */
-            .model-row { flex-direction: column; gap: 5px; }
             .model-alias::before { content: "Provider: "; color: var(--text-muted); font-weight: normal; }
-            .model-real::before { content: "Real Model: "; color: var(--text-muted); font-weight: normal; }
-            .model-full::before { content: "Copy ID: "; color: var(--text-muted); font-weight: normal; display: block; margin-bottom: 2px;}
+            .model-real::before { content: "Model: "; color: var(--text-muted); font-weight: normal; }
+            .model-full::before { content: "Copy ID: "; color: var(--text-muted); font-weight: normal; display: block; margin-bottom: 5px; }
         }
 
-        /* Login Modal */
-        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); display: flex; align-items: center; justify-content: center; z-index: 999; }
-        .modal-box { background: var(--bg-card); padding: 40px; width: 90%; max-width: 380px; border-radius: 16px; text-align: center; border: 1px solid var(--border); }
-
-        /* Toast */
-        #toast { visibility: hidden; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #1f2937; color: white; padding: 10px 20px; border-radius: 30px; font-weight: 600; z-index: 1000; transition: 0.3s; opacity: 0; }
+        /* --- LOGIN MODAL --- */
+        .modal { position: fixed; inset: 0; background: var(--modal-overlay); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 999; }
+        .modal-box { background: var(--bg-card); padding: 40px; width: 90%; max-width: 380px; border-radius: 20px; text-align: center; border: 1px solid var(--border); box-shadow: 0 20px 50px -10px rgba(0,0,0,0.2); }
+        
+        /* --- TOAST --- */
+        #toast { visibility: hidden; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #1f2937; color: white; padding: 12px 24px; border-radius: 50px; font-weight: 600; z-index: 1000; transition: 0.3s; opacity: 0; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); }
         #toast.show { visibility: visible; opacity: 1; bottom: 50px; }
     </style>
 </head>
@@ -121,12 +116,17 @@
 
     <div id="loginModal" class="modal hidden">
         <div class="modal-box">
-            <h2 style="color:var(--primary); margin-top:0">Gateway Login</h2>
+            <div style="font-size: 4rem; color: var(--primary); margin-bottom: 20px;">
+                <i class="fa-solid fa-shield-cat"></i>
+            </div>
+            <h2 style="color:var(--text-main); margin-top:0; font-size: 1.8rem;">Gateway Login</h2>
+            <p style="color:var(--text-muted); margin-bottom: 30px;">Hệ thống bảo mật Admin</p>
+            
             <form id="loginForm">
-                <input type="password" id="mk" placeholder="Nhập Master Key..." style="text-align:center; margin-bottom:15px;" required>
-                <button class="btn btn-primary">Đăng Nhập</button>
+                <input type="password" id="mk" placeholder="Nhập Master Key..." style="text-align:center; margin-bottom:20px;" required>
+                <button class="btn btn-primary">Truy cập Dashboard <i class="fa-solid fa-arrow-right"></i></button>
             </form>
-            <p id="loginMsg" style="color:var(--danger); display:none; margin-top:10px"></p>
+            <p id="loginMsg" style="color:var(--danger); display:none; margin-top:15px; font-weight:bold;"></p>
         </div>
     </div>
 
@@ -134,14 +134,14 @@
         <header class="header">
             <div class="brand"><i class="fa-solid fa-layer-group"></i> AI Gateway</div>
             <div>
-                <button class="action-btn" onclick="toggleTheme()"><i class="fa-solid fa-moon"></i></button>
-                <button class="action-btn" onclick="logout()" style="color:var(--danger)"><i class="fa-solid fa-power-off"></i></button>
+                <button class="action-btn" onclick="toggleTheme()" title="Giao diện"><i class="fa-solid fa-moon"></i></button>
+                <button class="action-btn" onclick="logout()" title="Đăng xuất" style="color:var(--danger)"><i class="fa-solid fa-power-off"></i></button>
             </div>
         </header>
 
         <div class="tabs">
             <button class="tab-btn active" onclick="tab('config')" id="t-config"><i class="fa-solid fa-sliders"></i> Cấu Hình</button>
-            <button class="tab-btn" onclick="tab('models')" id="t-models"><i class="fa-solid fa-robot"></i> Models (List)</button>
+            <button class="tab-btn" onclick="tab('models')" id="t-models"><i class="fa-solid fa-robot"></i> Models</button>
             <button class="tab-btn" onclick="tab('stats')" id="t-stats"><i class="fa-solid fa-chart-pie"></i> Thống Kê</button>
         </div>
 
@@ -151,7 +151,7 @@
                     <h3><i class="fa-solid fa-server"></i> Thêm Provider</h3>
                     <form id="pForm">
                         <div class="form-group">
-                            <label>Alias</label>
+                            <label>Alias (Tên ngắn)</label>
                             <input type="text" id="p_name" placeholder="vd: gpt, open" required>
                         </div>
                         <div class="form-group">
@@ -187,7 +187,7 @@
                             <label>Custom Key (Tùy chọn)</label>
                             <input type="text" id="k_cust" placeholder="Để trống tự tạo">
                         </div>
-                        <button class="btn btn-success">Tạo Key</button>
+                        <button class="btn btn-success">Tạo Key Mới</button>
                     </form>
                 </div>
             </div>
@@ -195,24 +195,24 @@
 
         <div id="v-models" class="hidden">
             <div class="card">
-                <h3><i class="fa-solid fa-robot"></i> Danh sách Model khả dụng</h3>
-                <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:15px;">
-                    Bấm vào cột <b>Full ID</b> để copy và dán vào Cursor/App.
+                <h3><i class="fa-solid fa-cubes"></i> Danh sách Model (Live)</h3>
+                <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:20px;">
+                    Dưới đây là các model lấy trực tiếp từ Provider. Bấm vào cột <b>Full ID</b> để copy.
                 </p>
                 
                 <div class="list-header">
-                    <div style="width:20%">Alias (Provider)</div>
+                    <div style="width:20%">Alias</div>
                     <div style="width:30%">Real Model Name</div>
                     <div style="width:50%">Full ID (Click to Copy)</div>
                 </div>
                 
-                <div id="mList">Đang tải danh sách model...</div>
+                <div id="mList">Đang tải dữ liệu...</div>
             </div>
         </div>
 
         <div id="v-stats" class="hidden">
             <div class="card">
-                <h3><i class="fa-solid fa-list-ol"></i> Danh sách Key</h3>
+                <h3><i class="fa-solid fa-users"></i> Danh sách Client Key</h3>
                 
                 <div class="list-header">
                     <div class="col-1">Tên App</div>
@@ -229,8 +229,7 @@
     <div id="toast"><i class="fa-solid fa-check"></i> Đã copy!</div>
 
     <script>
-        // --- SETUP ---
-        const KEY='gw_v4_mobile'; 
+        const KEY='gw_v4_ui_final'; 
         
         // Theme
         if(localStorage.getItem('theme')==='dark') document.documentElement.classList.add('dark');
@@ -239,7 +238,7 @@
             localStorage.setItem('theme', isDark?'dark':'light'); 
         }
 
-        // --- API CALL ---
+        // API
         async function api(u, m='GET', d=null) {
             try {
                 const r = await fetch(u, { method: m, headers: {'Content-Type':'application/json'}, body: d?JSON.stringify(d):null });
@@ -248,13 +247,13 @@
             } catch { return null; }
         }
 
-        // --- LOGIC LOAD DATA ---
+        // Logic Load Data
         async function loadP() {
             const d = await api('/api/admin/providers');
             if(d) document.getElementById('pList').innerHTML = d.map(p => `
-                <div class="list-item" style="display:flex; justify-content:space-between;">
+                <div class="list-item" style="justify-content:space-between">
                     <div>
-                        <div style="font-weight:700">${p.name}</div>
+                        <div style="font-weight:700; color:var(--text-main)">${p.name}</div>
                         <div style="font-size:0.8rem; color:var(--text-muted)">${p.provider_type}</div>
                     </div>
                     <button class="btn-danger-ghost" onclick="delP('${p.name}')">Xóa</button>
@@ -268,14 +267,14 @@
                 document.getElementById('kList').innerHTML = d.map(k => {
                     const isMaster = k.is_hidden;
                     const keyDisplay = isMaster 
-                        ? `<span style="color:#d97706; background:#fffbeb; padding:2px 6px; border-radius:4px; font-size:0.8rem">MASTER KEY (Hidden)</span>`
-                        : `<span class="copy-box" onclick="copyTxt('${k.key}')" title="Copy">${k.key} <i class="fa-regular fa-copy"></i></span>`;
+                        ? `<span style="color:#d97706; background:#fffbeb; padding:2px 6px; border-radius:4px; font-size:0.8rem; border:1px solid #fcd34d">MASTER (Hidden)</span>`
+                        : `<span class="copy-box" onclick="copyTxt('${k.key}')" oncontextmenu="return false;">${k.key} <i class="fa-regular fa-copy"></i></span>`;
                     
                     return `
                     <div class="list-item">
                         <div class="col-1">${k.name}</div>
                         <div class="col-2">${keyDisplay}</div>
-                        <div class="col-3"><b style="color:${k.usage_count>0?'var(--success)':'var(--text-muted)'}">${k.usage_count}</b></div>
+                        <div class="col-3"><b style="color:${k.usage_count>0?'var(--success)':'var(--text-muted)'}; font-size:1.1rem">${k.usage_count}</b></div>
                         <div class="col-4">
                             ${!isMaster ? `<button class="btn-danger-ghost" onclick="delK('${k.key}')">Xóa</button>` : ''}
                         </div>
@@ -288,7 +287,6 @@
             const res = await api('/v1/models');
             if(res && res.data) {
                 document.getElementById('mList').innerHTML = res.data.map(m => {
-                    // Format id: alias/model
                     const parts = m.id.split('/');
                     const alias = parts[0];
                     const realModel = parts.slice(1).join('/');
@@ -296,25 +294,25 @@
                     return `
                     <div class="list-item model-row">
                         <div style="width:20%" class="model-alias"><span style="font-weight:bold; color:var(--primary)">${alias}</span></div>
-                        <div style="width:30%; word-break:break-all; font-size:0.9rem" class="model-real">${realModel}</div>
+                        <div style="width:30%; word-break:break-all; font-size:0.9rem; color:var(--text-main);" class="model-real">${realModel}</div>
                         <div style="width:50%" class="model-full">
                             <span class="copy-box" style="width:100%; display:block;" onclick="copyTxt('${m.id}')">
-                                ${m.id} <i class="fa-solid fa-paste" style="float:right; margin-top:3px;"></i>
+                                ${m.id} <i class="fa-solid fa-paste" style="float:right; margin-top:2px; opacity:0.5"></i>
                             </span>
                         </div>
                     </div>`;
                 }).join('');
             } else {
-                document.getElementById('mList').innerHTML = '<p style="padding:20px; text-align:center">Không lấy được danh sách model (Check Provider/Cache)</p>';
+                document.getElementById('mList').innerHTML = '<div style="padding:30px; text-align:center; color:var(--text-muted)">Không tìm thấy model hoặc chưa cấu hình Provider.</div>';
             }
         }
 
-        // --- UTILS ---
+        // Auto Fill URL Logic
         function fillUrl() {
             const t = document.getElementById('p_type').value;
             const b = document.getElementById('p_base');
             if(t==='openrouter') { b.value='https://openrouter.ai/api/v1'; b.disabled=false; }
-            else if(t==='gemini') { b.value='Native API'; b.disabled=true; }
+            else if(t==='gemini') { b.value='https://generativelanguage.googleapis.com'; b.disabled=false; }
             else { b.value=''; b.disabled=false; b.placeholder='https://api.openai.com/v1'; }
         }
 
@@ -342,7 +340,7 @@
             document.body.removeChild(ta);
         }
 
-        // --- AUTH ---
+        // Auth
         document.getElementById('loginForm').onsubmit = async(e)=>{
             e.preventDefault();
             const k = document.getElementById('mk').value;
@@ -357,9 +355,9 @@
             else { document.getElementById('loginModal').classList.remove('hidden'); }
         }
 
-        // --- ACTIONS ---
-        document.getElementById('pForm').onsubmit = async(e)=>{e.preventDefault(); await api('/api/admin/providers','POST',{name:document.getElementById('p_name').value, provider_type:document.getElementById('p_type').value, api_key:document.getElementById('p_key').value, base_url:document.getElementById('p_base').disabled?null:document.getElementById('p_base').value}); e.target.reset(); loadP(); };
-        document.getElementById('kForm').onsubmit = async(e)=>{e.preventDefault(); const r=await api('/api/admin/keys','POST',{name:document.getElementById('k_name').value, custom_key:document.getElementById('k_cust').value||null}); if(r){copyTxt(r.key); alert('Đã tạo & Copy Key!'); e.target.reset(); tab('stats');}};
+        // CRUD
+        document.getElementById('pForm').onsubmit = async(e)=>{e.preventDefault(); await api('/api/admin/providers','POST',{name:document.getElementById('p_name').value, provider_type:document.getElementById('p_type').value, api_key:document.getElementById('p_key').value, base_url:document.getElementById('p_base').value||null}); e.target.reset(); loadP(); };
+        document.getElementById('kForm').onsubmit = async(e)=>{e.preventDefault(); const r=await api('/api/admin/keys','POST',{name:document.getElementById('k_name').value, custom_key:document.getElementById('k_cust').value||null}); if(r){copyTxt(r.key); alert('Đã copy Key mới!'); e.target.reset(); tab('stats');}};
         async function delP(n){if(confirm('Xóa?')) {await api(`/api/admin/providers/${n}`,'DELETE'); loadP();}}
         async function delK(k){if(confirm('Xóa?')) {await api(`/api/admin/keys/${k}`,'DELETE'); loadK();}}
 
