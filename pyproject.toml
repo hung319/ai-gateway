@@ -15,6 +15,7 @@ dependencies = [
     "python-multipart",
     "redis",
     "langfuse",
+    "python-dotenv",
     ]
 
 [tool.uv]
