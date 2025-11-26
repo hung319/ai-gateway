@@ -13,13 +13,17 @@ from app.utils import fetch_provider_models, parse_model_alias
 from app.engine import ai_engine
 from app.config import CACHE_TTL
 
+# Khởi tạo Router với prefix /v1
 router = APIRouter(prefix="/v1", tags=["Gateway"])
 
+# --- 1. LIST MODELS ---
 @router.get("/models")
 async def list_models(k: GatewayKey=Depends(verify_usage), s: Session=Depends(get_session)):
     if redis_client:
-        c = await redis_client.get("gw:models")
-        if c: return json.loads(c)
+        try:
+            c = await redis_client.get("gw:models")
+            if c: return json.loads(c)
+        except: pass
     
     ps = s.exec(select(Provider)).all()
     async with httpx.AsyncClient() as client:
@@ -27,21 +31,23 @@ async def list_models(k: GatewayKey=Depends(verify_usage), s: Session=Depends(ge
         res = await asyncio.gather(*tasks)
     
     final = {"object": "list", "data": [m for sub in res for m in sub]}
-    if redis_client: await redis_client.set("gw:models", json.dumps(final), ex=CACHE_TTL)
+    
+    if redis_client:
+        try: await redis_client.set("gw:models", json.dumps(final), ex=CACHE_TTL)
+        except: pass
     return final
 
+# --- 2. CHAT COMPLETIONS ---
 @router.post("/chat/completions")
 async def chat(req: Request, k: GatewayKey=Depends(verify_usage), s: Session=Depends(get_session)):
     try: body = await req.json()
-    except: raise HTTPException(400, "JSON")
+    except: raise HTTPException(400, "JSON Error")
     
     if "input" in body and "messages" not in body: body["messages"]=body["input"]; del body["input"]
     
     requested_model = body.get("model")
-    # Nếu model chứa "/" (vd: google/gemini), AI Engine sẽ dùng nó làm Deployment ID
-    # Nếu model ko chứa "/" (vd: gpt-4o), Router sẽ tìm deployment có model_name="gpt-4o"
     
-    # Metadata cho Log
+    # Metadata
     metadata = {"user": k.name, "key_hash": k.key[:5]+"..."}
     
     kwargs = {
@@ -62,32 +68,42 @@ async def chat(req: Request, k: GatewayKey=Depends(verify_usage), s: Session=Dep
         else:
             return JSONResponse((await ai_engine.router.acompletion(**kwargs)).json())
     except Exception as e:
-        # Fallback logic nếu Router chưa init hoặc lỗi (dùng cách cũ)
-        # ... (Code fallback cũ ở đây nếu muốn, nhưng Router nên hoạt động)
+        print(f"Chat Error: {e}")
         raise HTTPException(500, str(e))
 
-# --- Multimedia (Giữ nguyên cách cũ vì Router chủ yếu tối ưu cho Chat) ---
-@app.post("/images/generations")
-async def img(req: Request, k: GatewayKey=Depends(verify_usage), s: Session=Depends(get_session)):
+# --- 3. MULTIMEDIA (Sửa @app -> @router) ---
+
+@router.post("/images/generations") # <--- Đã sửa
+async def image_gen(req: Request, k: GatewayKey=Depends(verify_usage), s: Session=Depends(get_session)):
     try: body=await req.json()
-    except: raise HTTPException(400)
+    except: raise HTTPException(400, "JSON Error")
     p, m = parse_model_alias(body.get("model",""), s)
     try: 
         res = await image_generation(model=m, prompt=body.get("prompt"), api_key=p.api_key, api_base=p.base_url, n=1, size=body.get("size","1024x1024"))
         return JSONResponse(res.json())
     except Exception as e: raise HTTPException(500, str(e))
 
-@app.post("/audio/speech")
+@router.post("/videos/generations") # <--- Đã sửa
+async def video_gen(req: Request, k: GatewayKey=Depends(verify_usage), s: Session=Depends(get_session)):
+    try: body=await req.json()
+    except: raise HTTPException(400, "JSON Error")
+    p, m = parse_model_alias(body.get("model",""), s)
+    try:
+        res = await image_generation(model=m, prompt=body.get("prompt"), api_key=p.api_key, api_base=p.base_url, n=1)
+        return JSONResponse(res.json())
+    except Exception as e: raise HTTPException(500, str(e))
+
+@router.post("/audio/speech") # <--- Đã sửa
 async def tts(req: Request, k: GatewayKey=Depends(verify_usage), s: Session=Depends(get_session)):
     try: body=await req.json()
-    except: raise HTTPException(400)
+    except: raise HTTPException(400, "JSON Error")
     p, m = parse_model_alias(body.get("model",""), s)
     try:
         res = await speech(model=m, input=body.get("input"), voice=body.get("voice","alloy"), api_key=p.api_key, api_base=p.base_url)
         return StreamingResponse(res.iter_content(1024), media_type="audio/mpeg")
     except Exception as e: raise HTTPException(500, str(e))
 
-@app.post("/audio/transcriptions")
+@router.post("/audio/transcriptions") # <--- Đã sửa
 async def stt(model: str=Form(...), file: UploadFile=File(...), k: GatewayKey=Depends(verify_usage), s: Session=Depends(get_session)):
     p, m = parse_model_alias(model, s)
     try:
