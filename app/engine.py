@@ -12,7 +12,7 @@ class AIEngine:
     def initialize(self, session: Session):
         print("🔄 [Engine] Initializing...")
         
-        # 1. Langfuse
+        # 1. Langfuse Config
         if LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY:
             os.environ["LANGFUSE_PUBLIC_KEY"] = LANGFUSE_PUBLIC_KEY
             os.environ["LANGFUSE_SECRET_KEY"] = LANGFUSE_SECRET_KEY
@@ -24,37 +24,58 @@ class AIEngine:
         # 2. Load Providers -> Router
         providers = session.exec(select(Provider)).all()
         model_list = []
+        
         for p in providers:
-            dep = {
-                "model_name": p.name, # Alias dùng để gọi
+            # --- [FIX QUAN TRỌNG] ---
+            # Luôn định dạng model là "provider/name" để LiteLLM không bị lỗi
+            # với các model custom (ví dụ: duckai, local-model...)
+            
+            # Nếu là OpenAI standard (Custom URL hoặc Official)
+            if p.provider_type == "openai":
+                # Ép buộc format: openai/tên_alias
+                # Điều này báo cho LiteLLM biết: "Dùng giao thức OpenAI để gọi model này"
+                litellm_model_id = f"openai/{p.name}"
+            else:
+                # Các loại khác (gemini/tên, openrouter/tên...)
+                litellm_model_id = f"{p.provider_type}/{p.name}"
+
+            deployment = {
+                "model_name": p.name, # Alias dùng để routing
                 "litellm_params": {
-                    "model": f"{p.provider_type}/{p.name}" if p.provider_type != "openai" else p.name,
+                    "model": litellm_model_id,
                     "api_key": p.api_key,
                 }
             }
-            if p.base_url: dep["litellm_params"]["api_base"] = p.base_url
-            model_list.append(dep)
+            
+            if p.base_url:
+                deployment["litellm_params"]["api_base"] = p.base_url
+            
+            model_list.append(deployment)
 
         # 3. Init Router
+        if not model_list:
+            print("⚠️ [Engine] No providers found in DB. Waiting for setup...")
+            self.router = None
+            return
+
         router_config = {
             "model_list": model_list,
-            "fallbacks": [], # Có thể thêm logic fallback tự động ở đây
             "set_verbose": False
         }
         
-        # Caching qua Redis cho Router
+        # Redis Cache
         if REDIS_URL and ENABLE_CACHE:
-            # LiteLLM yêu cầu redis_host, redis_port riêng lẻ hoặc cache object
-            # Ở đây ta dùng cấu hình cache params
             router_config["cache_responses"] = True
-            # Redis params sẽ được Router tự parse từ môi trường hoặc truyền thẳng
-            # Đơn giản nhất: Router sẽ dùng internal cache nếu ko có redis params cụ thể
-            # Để kích hoạt Redis Cache cho Router, cần set os.environ["REDIS_URL"]
             os.environ["REDIS_URL"] = REDIS_URL
             print("✅ [Engine] Semantic Caching Enabled")
 
-        self.router = Router(**router_config)
-        print(f"🚀 [Engine] Ready with {len(model_list)} providers")
+        try:
+            self.router = Router(**router_config)
+            print(f"🚀 [Engine] Router Ready with {len(model_list)} providers")
+        except Exception as e:
+            print(f"❌ [Engine] Router Init Failed: {e}")
+            # Không crash app nếu config sai, để admin còn vào sửa được
+            self.router = None
 
     async def reload(self, session: Session):
         self.initialize(session)
