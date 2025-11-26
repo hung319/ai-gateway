@@ -28,105 +28,165 @@
             --modal-overlay: rgba(0,0,0,0.85);
         }
 
-        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg-body); color: var(--text-main); margin: 0; padding: 20px; transition: 0.3s; font-size: 15px; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg-body); color: var(--text-main); margin: 0; padding: 15px; transition: 0.3s; font-size: 14px; }
         * { box-sizing: border-box; }
         .hidden { display: none !important; }
         
         .container { max-width: 1200px; margin: 0 auto; padding-bottom: 80px; }
 
         /* --- HEADER --- */
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 1px solid var(--border); padding-bottom: 20px; }
-        .brand { font-size: 1.5rem; font-weight: 800; color: var(--primary); display: flex; align-items: center; gap: 10px; }
-        .action-btn { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-main); padding: 8px 12px; border-radius: 8px; cursor: pointer; margin-left: 8px; font-size: 1.1rem; transition: 0.2s; }
-        .action-btn:hover { background: var(--border); }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border); }
+        .brand { font-size: 1.4rem; font-weight: 800; color: var(--primary); display: flex; align-items: center; gap: 10px; }
+        .action-btn { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-main); padding: 8px; border-radius: 8px; cursor: pointer; margin-left: 5px; }
 
         /* --- TABS --- */
-        .tabs { display: flex; gap: 10px; margin-bottom: 30px; overflow-x: auto; padding-bottom: 5px; justify-content: center; }
+        .tabs { display: flex; gap: 5px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 5px; justify-content: center; }
         .tab-btn { 
-            background: transparent; border: none; font-size: 1rem; font-weight: 600; color: var(--text-muted); 
-            padding: 10px 25px; cursor: pointer; border-radius: 30px; white-space: nowrap; transition: 0.2s;
+            background: transparent; border: none; font-size: 0.95rem; font-weight: 600; color: var(--text-muted); 
+            padding: 8px 15px; cursor: pointer; border-radius: 20px; white-space: nowrap; transition: 0.2s;
         }
         .tab-btn:hover { background: var(--bg-card); color: var(--primary); }
         .tab-btn.active { background: var(--bg-card); color: var(--primary); border: 1px solid var(--border); box-shadow: var(--shadow); }
 
         /* --- CARDS & FORMS --- */
-        .card { background: var(--bg-card); border-radius: 16px; padding: 25px; margin-bottom: 24px; border: 1px solid var(--border); box-shadow: var(--shadow); }
-        .card h3 { margin: 0 0 20px 0; font-size: 1.2rem; color: var(--text-main); display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); padding-bottom: 15px; }
+        .card { background: var(--bg-card); border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid var(--border); box-shadow: var(--shadow); }
+        .card h3 { margin: 0 0 15px 0; font-size: 1.1rem; color: var(--text-main); display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
         
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         
-        label { display: block; font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; }
-        input, select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main); font-size: 1rem; outline: none; transition: 0.2s; }
-        input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
+        label { display: block; font-size: 0.7rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; margin-bottom: 5px; }
+        input, select { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main); font-size: 0.95rem; outline: none; }
+        input:focus, select:focus { border-color: var(--primary); }
 
-        .btn { width: 100%; padding: 12px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; color: white; transition: 0.2s; margin-top: 10px; position: relative; overflow: hidden; }
-        .btn:active { transform: scale(0.98); }
-        .btn-primary { background: linear-gradient(135deg, var(--primary), #2563eb); box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2); }
-        .btn-success { background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2); }
-        .btn-danger-ghost { background: transparent; border: 1px solid var(--danger); color: var(--danger); padding: 6px 12px; border-radius: 6px; width: auto; font-size: 0.85rem; margin: 0; }
+        .btn { width: 100%; padding: 12px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; color: white; margin-top: 10px; }
+        .btn-primary { background: var(--primary); }
+        .btn-success { background: var(--success); }
+        .btn-danger-ghost { 
+            background: transparent; border: 1px solid var(--danger); color: var(--danger); 
+            padding: 4px 8px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; transition: 0.2s;
+        }
         .btn-danger-ghost:hover { background: var(--danger); color: white; }
 
-        /* --- LISTS & TABLES --- */
-        .list-header { display: flex; padding: 12px 15px; background: var(--input-bg); font-weight: 800; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; border-radius: 8px 8px 0 0; border-bottom: 1px solid var(--border); }
-        .list-item { display: flex; align-items: center; padding: 15px; border-bottom: 1px solid var(--border); font-size: 0.95rem; transition: background 0.2s; }
-        .list-item:hover { background: var(--input-bg); }
-        .list-item:last-child { border-bottom: none; }
+        /* ========================================= */
+        /* [TABLE SYSTEM] - FIXED & TRUNCATE (NO SCROLL) */
+        /* ========================================= */
+        
+        .table-container {
+            width: 100%;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            overflow: hidden; /* Ẩn thanh cuộn */
+        }
 
-        .col-1 { width: 25%; font-weight: 700; color: var(--text-main); }
-        .col-2 { width: 45%; word-break: break-all; }
-        .col-3 { width: 20%; text-align: center; }
-        .col-4 { width: 10%; text-align: right; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed; /* Ép các cột tuân thủ width, cắt chữ nếu dài */
+        }
 
+        th {
+            text-align: left; padding: 10px; font-size: 0.75rem; font-weight: 800;
+            background: var(--input-bg); color: var(--text-muted); text-transform: uppercase;
+            border-bottom: 2px solid var(--border); white-space: nowrap;
+        }
+
+        td {
+            padding: 12px 10px; border-bottom: 1px solid var(--border); font-size: 0.9rem;
+            vertical-align: middle; color: var(--text-main);
+            
+            /* LOGIC CẮT CHỮ (...) */
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+
+        tr:last-child td { border-bottom: none; }
+        tr:hover { background-color: var(--input-bg); }
+
+        /* Utils */
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        
+        /* COPY BOX (Khung xanh) */
         .copy-box { 
             font-family: 'Monaco', monospace; background: var(--code-bg); border: 1px dashed var(--border); 
-            padding: 6px 10px; border-radius: 6px; color: var(--primary); cursor: pointer; 
-            display: inline-block; transition: 0.2s; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+            padding: 4px 8px; border-radius: 4px; color: var(--primary); cursor: pointer; 
+            display: block; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
             user-select: none; -webkit-user-select: none;
         }
         .copy-box:hover { border-color: var(--primary); background: rgba(59, 130, 246, 0.1); }
-        .copy-box:active { transform: scale(0.95); }
+        .copy-box:active { transform: scale(0.98); }
+        .copy-box i { float: right; margin-top: 3px; opacity: 0.6; font-size: 0.8em; }
 
-        /* --- RESPONSIVE --- */
+        /* TEXT COPY (Chỉ chữ, không khung - Cho cột Real Name) */
+        .text-copy {
+            cursor: pointer; transition: color 0.2s;
+        }
+        .text-copy:hover { color: var(--primary); }
+        .text-copy:active { opacity: 0.7; }
+
+        .badge { background: var(--border); padding: 3px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; display: inline-block; vertical-align: middle; margin-right: 5px; }
+
+        /* --- COLUMN WIDTHS (Desktop) --- */
+        .col-alias { width: 20%; }
+        .col-info { width: 65%; }
+        .col-act { width: 15%; text-align: right; }
+
+        .col-name { width: 25%; }
+        .col-key { width: 45%; }
+        .col-usage { width: 15%; }
+        
+        /* Models Tab Desktop */
+        .col-mod-alias { width: 15%; }
+        .col-mod-real { width: 30%; }
+        .col-mod-full { width: 55%; }
+
+        /* --- MOBILE RESPONSIVE (NO SCROLL) --- */
         @media (max-width: 768px) {
             body { padding: 10px; }
             .grid-2 { grid-template-columns: 1fr; gap: 10px; }
-            .list-header { display: none; }
-            .list-item { flex-direction: column; align-items: flex-start; gap: 10px; background: var(--bg-card); margin-bottom: 10px; border-radius: 12px; border: 1px solid var(--border); padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-            .col-1, .col-2, .col-3, .col-4 { width: 100%; text-align: left; }
-            .col-1::before { content: "Alias: "; color: var(--text-muted); font-weight: normal; font-size: 0.85rem; }
-            .col-2::before { content: "Value: "; color: var(--text-muted); font-weight: normal; display: block; margin-bottom: 5px; font-size: 0.85rem; }
-            .col-3::before { content: "Status: "; color: var(--text-muted); font-weight: normal; font-size: 0.85rem; }
-            .col-4 { text-align: right; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); }
             
-            .model-alias::before { content: "Provider: "; color: var(--text-muted); font-weight: normal; }
-            .model-real::before { content: "Model: "; color: var(--text-muted); font-weight: normal; }
-            .model-full::before { content: "Copy ID: "; color: var(--text-muted); font-weight: normal; display: block; margin-bottom: 5px; }
+            /* Giảm padding để tối ưu diện tích */
+            th, td { padding: 10px 6px; font-size: 0.85rem; }
+            
+            /* --- Tinh chỉnh tỷ lệ cột Mobile --- */
+            /* Các cột này cộng lại phải <= 100% */
+
+            /* Stats: Name(25) | Key(40) | Usage(15) | Act(20) */
+            .col-name { width: 25%; font-weight: bold; }
+            .col-key { width: 40%; } 
+            .col-usage { width: 15%; font-size: 0.8rem; }
+            .col-act { width: 20%; text-align: right; }
+
+            /* Models: Alias(20) | Real(30) | Full ID(50) */
+            .col-mod-alias { width: 20%; font-weight: bold; }
+            .col-mod-real { width: 30%; } 
+            .col-mod-full { width: 50%; }
+
+            /* Provider: Alias(25) | URL(55) | Act(20) */
+            .col-alias { width: 25%; font-weight: bold; }
+            .col-info { width: 55%; } 
+            .col-act { width: 20%; }
         }
 
         /* --- LOGIN MODAL --- */
         .modal { position: fixed; inset: 0; background: var(--modal-overlay); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 999; }
-        .modal-box { background: var(--bg-card); padding: 40px; width: 90%; max-width: 380px; border-radius: 20px; text-align: center; border: 1px solid var(--border); box-shadow: 0 20px 50px -10px rgba(0,0,0,0.2); }
+        .modal-box { background: var(--bg-card); padding: 30px; width: 90%; max-width: 350px; border-radius: 16px; text-align: center; border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
         
         /* --- TOAST --- */
-        #toast { visibility: hidden; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #1f2937; color: white; padding: 12px 24px; border-radius: 50px; font-weight: 600; z-index: 1000; transition: 0.3s; opacity: 0; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); }
-        #toast.show { visibility: visible; opacity: 1; bottom: 50px; }
+        #toast { visibility: hidden; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1f2937; color: white; padding: 8px 16px; border-radius: 30px; font-size:0.9rem; z-index: 1000; opacity: 0; transition: 0.3s; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        #toast.show { visibility: visible; opacity: 1; bottom: 40px; }
     </style>
 </head>
 <body>
 
     <div id="loginModal" class="modal hidden">
         <div class="modal-box">
-            <div style="font-size: 4rem; color: var(--primary); margin-bottom: 20px;">
-                <i class="fa-solid fa-shield-cat"></i>
-            </div>
-            <h2 style="color:var(--text-main); margin-top:0; font-size: 1.8rem;">Gateway Login</h2>
-            <p style="color:var(--text-muted); margin-bottom: 30px;">Hệ thống bảo mật Admin</p>
-            
+            <div style="font-size: 4rem; color: var(--primary); margin-bottom: 15px;"><i class="fa-solid fa-shield-cat"></i></div>
+            <h2 style="color:var(--text-main); margin:0 0 20px 0;">Admin Login</h2>
             <form id="loginForm">
-                <input type="password" id="mk" placeholder="Nhập Master Key..." style="text-align:center; margin-bottom:20px;" required>
-                <button class="btn btn-primary">Truy cập Dashboard <i class="fa-solid fa-arrow-right"></i></button>
+                <input type="password" id="mk" placeholder="Master Key..." style="text-align:center; margin-bottom:15px;" required>
+                <button class="btn btn-primary">Access Panel</button>
             </form>
-            <p id="loginMsg" style="color:var(--danger); display:none; margin-top:15px; font-weight:bold;"></p>
+            <p id="loginMsg" style="color:var(--danger); display:none; margin-top:10px; font-size:0.9rem">Key sai!</p>
         </div>
     </div>
 
@@ -134,60 +194,60 @@
         <header class="header">
             <div class="brand"><i class="fa-solid fa-layer-group"></i> AI Gateway</div>
             <div>
-                <button class="action-btn" onclick="toggleTheme()" title="Giao diện"><i class="fa-solid fa-moon"></i></button>
-                <button class="action-btn" onclick="logout()" title="Đăng xuất" style="color:var(--danger)"><i class="fa-solid fa-power-off"></i></button>
+                <button class="action-btn" onclick="toggleTheme()" title="Theme"><i class="fa-solid fa-moon"></i></button>
+                <button class="action-btn" onclick="logout()" title="Logout" style="color:var(--danger)"><i class="fa-solid fa-power-off"></i></button>
             </div>
         </header>
 
         <div class="tabs">
-            <button class="tab-btn active" onclick="tab('config')" id="t-config"><i class="fa-solid fa-sliders"></i> Cấu Hình</button>
-            <button class="tab-btn" onclick="tab('models')" id="t-models"><i class="fa-solid fa-robot"></i> Models</button>
-            <button class="tab-btn" onclick="tab('stats')" id="t-stats"><i class="fa-solid fa-chart-pie"></i> Thống Kê</button>
+            <button class="tab-btn active" onclick="tab('config')" id="t-config">Config</button>
+            <button class="tab-btn" onclick="tab('models')" id="t-models">Models</button>
+            <button class="tab-btn" onclick="tab('stats')" id="t-stats">Stats</button>
         </div>
 
         <div id="v-config">
             <div class="grid-2">
                 <div class="card">
-                    <h3><i class="fa-solid fa-server"></i> Thêm Provider</h3>
+                    <h3><i class="fa-solid fa-server"></i> Providers</h3>
                     <form id="pForm">
-                        <div class="form-group">
-                            <label>Alias (Tên ngắn)</label>
-                            <input type="text" id="p_name" placeholder="vd: gpt, open" required>
+                        <div class="grid-2" style="gap:10px; margin-bottom:10px">
+                            <div><label>Alias</label><input type="text" id="p_name" placeholder="gpt" required></div>
+                            <div><label>Type</label>
+                                <select id="p_type" onchange="fillUrl()">
+                                    <option value="openai">OpenAI</option>
+                                    <option value="gemini">Gemini</option>
+                                    <option value="openrouter">Router</option>
+                                    <option value="azure">Azure</option>
+                                </select>
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label>Loại API</label>
-                            <select id="p_type" onchange="fillUrl()">
-                                <option value="openai">OpenAI Standard</option>
-                                <option value="gemini">Google Gemini</option>
-                                <option value="openrouter">OpenRouter</option>
-                                <option value="azure">Azure OpenAI</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Base URL</label>
-                            <input type="text" id="p_base" placeholder="https://api.openai.com/v1">
-                        </div>
-                        <div class="form-group">
-                            <label>API Key</label>
-                            <input type="password" id="p_key" placeholder="sk-..." required>
-                        </div>
-                        <button class="btn btn-primary">Lưu Provider</button>
+                        <label>Base URL</label><input type="text" id="p_base" placeholder="https://api.openai.com/v1" style="margin-bottom:10px">
+                        <label>API Key</label><input type="password" id="p_key" required>
+                        <button class="btn btn-primary">Save Provider</button>
                     </form>
-                    <div id="pList" style="margin-top:20px; border-top:1px solid var(--border)"></div>
+                    
+                    <div style="margin-top:25px">
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th class="col-alias">Alias</th>
+                                        <th class="col-info">URL (Click to copy)</th>
+                                        <th class="col-act text-right">Act</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="pList"></tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="card" style="height: fit-content;">
-                    <h3><i class="fa-solid fa-key"></i> Tạo Key Client</h3>
+                <div class="card" style="height:fit-content">
+                    <h3><i class="fa-solid fa-key"></i> Client Keys</h3>
                     <form id="kForm">
-                        <div class="form-group">
-                            <label>Tên Ứng Dụng</label>
-                            <input type="text" id="k_name" placeholder="vd: Cursor" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Custom Key (Tùy chọn)</label>
-                            <input type="text" id="k_cust" placeholder="Để trống tự tạo">
-                        </div>
-                        <button class="btn btn-success">Tạo Key Mới</button>
+                        <label>App Name</label><input type="text" id="k_name" placeholder="Cursor" required style="margin-bottom:10px">
+                        <label>Custom Key</label><input type="text" id="k_cust" placeholder="Leave empty to generate">
+                        <button class="btn btn-success">Create Key</button>
                     </form>
                 </div>
             </div>
@@ -195,50 +255,59 @@
 
         <div id="v-models" class="hidden">
             <div class="card">
-                <h3><i class="fa-solid fa-cubes"></i> Danh sách Model (Live)</h3>
+                <h3><i class="fa-solid fa-cubes"></i> Live Models</h3>
                 <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:20px;">
-                    Dưới đây là các model lấy trực tiếp từ Provider. Bấm vào cột <b>Full ID</b> để copy.
+                    Click Full ID to copy.
                 </p>
                 
-                <div class="list-header">
-                    <div style="width:20%">Alias</div>
-                    <div style="width:30%">Real Model Name</div>
-                    <div style="width:50%">Full ID (Click to Copy)</div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th class="col-mod-alias">Alias</th>
+                                <th class="col-mod-real">Real Name</th>
+                                <th class="col-mod-full">Full ID (Copy)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mList">
+                            <tr><td colspan="3" class="text-center" style="padding:20px;">Loading...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
-                
-                <div id="mList">Đang tải dữ liệu...</div>
             </div>
         </div>
 
         <div id="v-stats" class="hidden">
             <div class="card">
-                <h3><i class="fa-solid fa-users"></i> Danh sách Client Key</h3>
-                
-                <div class="list-header">
-                    <div class="col-1">Tên App</div>
-                    <div class="col-2">API Key</div>
-                    <div class="col-3">Usage</div>
-                    <div class="col-4">Action</div>
+                <h3><i class="fa-solid fa-users"></i> Usage Stats</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th class="col-name">App Name</th>
+                                <th class="col-key">API Key</th>
+                                <th class="col-usage text-center">Reqs</th>
+                                <th class="col-action text-right">Act</th>
+                            </tr>
+                        </thead>
+                        <tbody id="kList"></tbody>
+                    </table>
                 </div>
-
-                <div id="kList"></div>
             </div>
         </div>
     </div>
 
-    <div id="toast"><i class="fa-solid fa-check"></i> Đã copy!</div>
+    <div id="toast"><i class="fa-solid fa-check"></i> Copied!</div>
 
     <script>
-        const KEY='gw_v4_ui_final'; 
+        const KEY='gw_v5_noscroll_v2'; 
         
-        // Theme
         if(localStorage.getItem('theme')==='dark') document.documentElement.classList.add('dark');
         function toggleTheme(){ 
             const isDark = document.documentElement.classList.toggle('dark'); 
             localStorage.setItem('theme', isDark?'dark':'light'); 
         }
 
-        // API
         async function api(u, m='GET', d=null) {
             try {
                 const r = await fetch(u, { method: m, headers: {'Content-Type':'application/json'}, body: d?JSON.stringify(d):null });
@@ -247,17 +316,25 @@
             } catch { return null; }
         }
 
-        // Logic Load Data
+        // --- RENDER ---
         async function loadP() {
             const d = await api('/api/admin/providers');
-            if(d) document.getElementById('pList').innerHTML = d.map(p => `
-                <div class="list-item" style="justify-content:space-between">
-                    <div>
-                        <div style="font-weight:700; color:var(--text-main)">${p.name}</div>
-                        <div style="font-size:0.8rem; color:var(--text-muted)">${p.provider_type}</div>
-                    </div>
-                    <button class="btn-danger-ghost" onclick="delP('${p.name}')">Xóa</button>
-                </div>`).join('');
+            if(d) document.getElementById('pList').innerHTML = d.map(p => {
+                const url = p.base_url || 'Default';
+                return `
+                <tr>
+                    <td class="font-bold text-main">${p.name}</td>
+                    <td class="text-muted">
+                        <span class="badge">${p.provider_type}</span>
+                        <span class="copy-box" onclick="copyTxt('${url}')" style="display:inline-block; width:auto; max-width:100%; vertical-align:middle; margin-left:5px;" title="${url}">
+                            ${url}
+                        </span>
+                    </td>
+                    <td class="text-right">
+                        <button class="btn-danger-ghost" onclick="delP('${p.name}')">Del</button>
+                    </td>
+                </tr>`;
+            }).join('');
         }
 
         async function loadK() {
@@ -267,47 +344,45 @@
                 document.getElementById('kList').innerHTML = d.map(k => {
                     const isMaster = k.is_hidden;
                     const keyDisplay = isMaster 
-                        ? `<span style="color:#d97706; background:#fffbeb; padding:2px 6px; border-radius:4px; font-size:0.8rem; border:1px solid #fcd34d">MASTER (Hidden)</span>`
-                        : `<span class="copy-box" onclick="copyTxt('${k.key}')" oncontextmenu="return false;">${k.key} <i class="fa-regular fa-copy"></i></span>`;
+                        ? `<span style="color:#d97706; background:#fffbeb; padding:4px 8px; border-radius:4px; font-size:0.7rem; border:1px solid #fcd34d;">MASTER</span>`
+                        : `<span class="copy-box" onclick="copyTxt('${k.key}')" oncontextmenu="return false;" title="${k.key}">${k.key} <i class="fa-regular fa-copy"></i></span>`;
                     
                     return `
-                    <div class="list-item">
-                        <div class="col-1">${k.name}</div>
-                        <div class="col-2">${keyDisplay}</div>
-                        <div class="col-3"><b style="color:${k.usage_count>0?'var(--success)':'var(--text-muted)'}; font-size:1.1rem">${k.usage_count}</b></div>
-                        <div class="col-4">
-                            ${!isMaster ? `<button class="btn-danger-ghost" onclick="delK('${k.key}')">Xóa</button>` : ''}
-                        </div>
-                    </div>`;
+                    <tr>
+                        <td class="font-bold" title="${k.name}">${k.name}</td>
+                        <td>${keyDisplay}</td>
+                        <td class="text-center"><b style="color:${k.usage_count>0?'var(--success)':'var(--text-muted)'}">${k.usage_count}</b></td>
+                        <td class="text-right">
+                            ${!isMaster ? `<button class="btn-danger-ghost" onclick="delK('${k.key}')">Del</button>` : ''}
+                        </td>
+                    </tr>`;
                 }).join('');
             }
         }
 
         async function loadM() {
             const res = await api('/v1/models');
-            if(res && res.data) {
+            if(res && res.data && res.data.length > 0) {
                 document.getElementById('mList').innerHTML = res.data.map(m => {
                     const parts = m.id.split('/');
                     const alias = parts[0];
                     const realModel = parts.slice(1).join('/');
-                    
                     return `
-                    <div class="list-item model-row">
-                        <div style="width:20%" class="model-alias"><span style="font-weight:bold; color:var(--primary)">${alias}</span></div>
-                        <div style="width:30%; word-break:break-all; font-size:0.9rem; color:var(--text-main);" class="model-real">${realModel}</div>
-                        <div style="width:50%" class="model-full">
-                            <span class="copy-box" style="width:100%; display:block;" onclick="copyTxt('${m.id}')">
-                                ${m.id} <i class="fa-solid fa-paste" style="float:right; margin-top:2px; opacity:0.5"></i>
-                            </span>
-                        </div>
-                    </div>`;
+                    <tr>
+                        <td style="font-weight:bold; color:var(--primary)">${alias}</td>
+                        <td onclick="copyTxt('${realModel}')" class="text-copy" title="Click to copy Real Name">
+                            ${realModel}
+                        </td>
+                        <td>
+                            <span class="copy-box" onclick="copyTxt('${m.id}')">${m.id} <i class="fa-solid fa-paste"></i></span>
+                        </td>
+                    </tr>`;
                 }).join('');
             } else {
-                document.getElementById('mList').innerHTML = '<div style="padding:30px; text-align:center; color:var(--text-muted)">Không tìm thấy model hoặc chưa cấu hình Provider.</div>';
+                document.getElementById('mList').innerHTML = '<tr><td colspan="3" style="text-align:center; padding:20px; color:var(--text-muted)">No models found.</td></tr>';
             }
         }
 
-        // Auto Fill URL Logic
         function fillUrl() {
             const t = document.getElementById('p_type').value;
             const b = document.getElementById('p_base');
@@ -325,41 +400,31 @@
             document.getElementById(`t-${t}`).classList.add('active');
             document.getElementById(`v-${t}`).classList.remove('hidden');
             
-            if(t==='config') loadP();
-            if(t==='stats') loadK();
-            if(t==='models') loadM();
+            if(t==='config') loadP(); if(t==='stats') loadK(); if(t==='models') loadM();
         }
 
         function copyTxt(txt) {
-            const ta = document.createElement('textarea'); ta.value = txt;
-            document.body.appendChild(ta); ta.select();
+            const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select();
             try { document.execCommand('copy'); 
-                const t = document.getElementById("toast"); t.className="show"; 
-                setTimeout(()=>t.className="", 2000);
+                const t = document.getElementById("toast"); t.className="show"; setTimeout(()=>t.className="", 2000);
             } catch(e){}
             document.body.removeChild(ta);
         }
 
-        // Auth
         document.getElementById('loginForm').onsubmit = async(e)=>{
             e.preventDefault();
             const k = document.getElementById('mk').value;
             const res = await fetch('/api/auth/login', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({master_key:k})});
             if(res.ok) { document.getElementById('loginModal').classList.add('hidden'); document.getElementById('app').classList.remove('hidden'); loadP(); }
-            else { document.getElementById('loginMsg').style.display='block'; document.getElementById('loginMsg').innerText='Key sai!'; }
+            else { document.getElementById('loginMsg').style.display='block'; }
         };
         async function logout() { await fetch('/api/auth/logout', {method:'POST'}); location.reload(); }
-        async function check() { 
-            const d=await api('/api/admin/providers'); 
-            if(d){ document.getElementById('loginModal').classList.add('hidden'); document.getElementById('app').classList.remove('hidden'); loadP(); }
-            else { document.getElementById('loginModal').classList.remove('hidden'); }
-        }
+        async function check() { const d=await api('/api/admin/providers'); if(d){ document.getElementById('loginModal').classList.add('hidden'); document.getElementById('app').classList.remove('hidden'); loadP(); } else { document.getElementById('loginModal').classList.remove('hidden'); } }
 
-        // CRUD
         document.getElementById('pForm').onsubmit = async(e)=>{e.preventDefault(); await api('/api/admin/providers','POST',{name:document.getElementById('p_name').value, provider_type:document.getElementById('p_type').value, api_key:document.getElementById('p_key').value, base_url:document.getElementById('p_base').value||null}); e.target.reset(); loadP(); };
-        document.getElementById('kForm').onsubmit = async(e)=>{e.preventDefault(); const r=await api('/api/admin/keys','POST',{name:document.getElementById('k_name').value, custom_key:document.getElementById('k_cust').value||null}); if(r){copyTxt(r.key); alert('Đã copy Key mới!'); e.target.reset(); tab('stats');}};
-        async function delP(n){if(confirm('Xóa?')) {await api(`/api/admin/providers/${n}`,'DELETE'); loadP();}}
-        async function delK(k){if(confirm('Xóa?')) {await api(`/api/admin/keys/${k}`,'DELETE'); loadK();}}
+        document.getElementById('kForm').onsubmit = async(e)=>{e.preventDefault(); const r=await api('/api/admin/keys','POST',{name:document.getElementById('k_name').value, custom_key:document.getElementById('k_cust').value||null}); if(r){copyTxt(r.key); e.target.reset(); tab('stats');}};
+        async function delP(n){if(confirm('Del?')) {await api(`/api/admin/providers/${n}`,'DELETE'); loadP();}}
+        async function delK(k){if(confirm('Del?')) {await api(`/api/admin/keys/${k}`,'DELETE'); loadK();}}
 
         check();
     </script>
