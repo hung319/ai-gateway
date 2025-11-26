@@ -8,13 +8,13 @@ dependencies = [
     "fastapi",
     "uvicorn",
     "sqlmodel",
-    "litellm>=1.40.0",  # Cập nhật LiteLLM mới nhất để fix bug
+    "litellm",
     "pydantic",
     "jinja2",
     "httpx",
     "python-multipart",
     "redis",
-    "langfuse>=2.33.0", # <--- QUAN TRỌNG: Ép bản Langfuse mới hỗ trợ sdk_integration
+    "langfuse",
     "python-dotenv"
 ]
 
