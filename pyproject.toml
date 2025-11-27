@@ -14,7 +14,7 @@ dependencies = [
     "httpx",
     "python-multipart",
     "redis",
-    "langfuse",
+    "langfuse==2.59.7",
     "python-dotenv"
 ]
 
