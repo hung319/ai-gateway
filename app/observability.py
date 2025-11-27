@@ -3,42 +3,42 @@ import logging
 import litellm
 from app.config import LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY, LANGFUSE_HOST
 
-# Setup Logger riêng cho module này
 logger = logging.getLogger(__name__)
 
 def setup_observability():
     """
-    Cấu hình Langfuse cho LiteLLM.
-    Được gọi bởi Engine hoặc Main khi khởi động.
+    Cấu hình Langfuse (Python SDK v2).
     """
-    # 1. Kiểm tra cấu hình
     if not (LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY):
-        # Dùng debug thay vì info để đỡ spam nếu người dùng không dùng Langfuse
-        logger.debug("[Observability] Langfuse keys not found. Skipping.")
+        logger.debug("[Observability] Langfuse keys missing. Skipping.")
         return
 
-    # 2. Thiết lập biến môi trường
+    # 1. Setup Env Vars (Bắt buộc cho SDK v2)
     os.environ["LANGFUSE_PUBLIC_KEY"] = LANGFUSE_PUBLIC_KEY
     os.environ["LANGFUSE_SECRET_KEY"] = LANGFUSE_SECRET_KEY
-    os.environ["LANGFUSE_HOST"] = LANGFUSE_HOST
+    if LANGFUSE_HOST:
+        os.environ["LANGFUSE_HOST"] = LANGFUSE_HOST
 
-    # 3. Kích hoạt Callback trong LiteLLM
+    # 2. Hook vào LiteLLM
     try:
+        # Import check version
         import langfuse
+        version = getattr(langfuse, "version", None) or getattr(langfuse, "__version__", "unknown")
         
-        # Đăng ký callback (tránh duplicate)
+        # Cảnh báo nếu lỡ cài phải v3 (dù đã chặn ở pyproject.toml)
+        if version != "unknown" and version.startswith("3."):
+             logger.warning(f"⚠️ [Observability] Detected Langfuse v{version}. LiteLLM native callback works best with v2!")
+
+        # Đăng ký Callback
         if "langfuse" not in litellm.success_callback:
             litellm.success_callback.append("langfuse")
         
         if "langfuse" not in litellm.failure_callback:
             litellm.failure_callback.append("langfuse")
-            
-        logger.info(f"✅ [Observability] Langfuse Enabled (v{langfuse.version.__version__})")
-        
+
+        logger.info(f"✅ [Observability] Langfuse Integration Enabled (Lib v{version})")
+
     except ImportError:
-        logger.warning("⚠️ [Observability] 'langfuse' library not installed. Run 'uv add langfuse'.")
+        logger.error("❌ [Observability] Library 'langfuse' not found. Run `uv add 'langfuse>=2.59.7,<3.0.0'`")
     except Exception as e:
-        logger.error(f"❌ [Observability] Failed to initialize Langfuse: {e}")
-        # Clean up để tránh lỗi runtime
-        if "langfuse" in litellm.success_callback:
-            litellm.success_callback.remove("langfuse")
+        logger.error(f"❌ [Observability] Setup Failed: {e}")
