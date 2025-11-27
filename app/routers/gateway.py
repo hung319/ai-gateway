@@ -30,7 +30,8 @@ async def list_models(k: GatewayKey=Depends(verify_usage), s: Session=Depends(ge
         res = await asyncio.gather(*tasks)
     
     final = {"object": "list", "data": [m for sub in res for m in sub]}
-    if redis_client: 
+    
+    if redis_client:
         try: await redis_client.set("gw:models", json.dumps(final), ex=CACHE_TTL)
         except: pass
     return final
@@ -38,18 +39,23 @@ async def list_models(k: GatewayKey=Depends(verify_usage), s: Session=Depends(ge
 # --- 2. CHAT COMPLETIONS ---
 @router.post("/chat/completions")
 async def chat(req: Request, k: GatewayKey=Depends(verify_usage), s: Session=Depends(get_session)):
-    try: body = await req.json()
-    except: raise HTTPException(400, "JSON Error")
+    try: 
+        body = await req.json()
+    except: 
+        raise HTTPException(400, "JSON Error")
     
-    # Fix Cursor Input
+    # Fix Cursor/Agent inputs
     if "input" in body and "messages" not in body: body["messages"]=body["input"]; del body["input"]
     
     # Parse Model
-    provider, real_model = parse_model_alias(body.get("model", ""), s)
+    raw_model = body.get("model", "")
+    provider, real_model = parse_model_alias(raw_model, s)
     del body["model"]
     
-    # Router Model Name (dùng alias)
-    target_model = provider.name
+    # Construct LiteLLM Model String
+    if provider.provider_type == "openai": litellm_model = f"openai/{real_model}" 
+    elif provider.provider_type == "azure": litellm_model = f"azure/{real_model}"
+    else: litellm_model = f"{provider.provider_type}/{real_model}"
 
     metadata = {
         "user": k.name, 
@@ -58,7 +64,7 @@ async def chat(req: Request, k: GatewayKey=Depends(verify_usage), s: Session=Dep
     }
     
     kwargs = {
-        "model": target_model,
+        "model": litellm_model,
         "messages": body.get("messages"),
         "api_key": provider.api_key,
         "metadata": metadata,
@@ -69,43 +75,53 @@ async def chat(req: Request, k: GatewayKey=Depends(verify_usage), s: Session=Dep
         kwargs["api_base"] = provider.base_url
         if provider.provider_type == "openai": kwargs["custom_llm_provider"] = "openai"
 
-    # Fallback nếu Router chưa sẵn sàng
-    if not ai_engine.router:
-        # Gọi trực tiếp (không qua router/cache/log) để chữa cháy
-        if provider.provider_type == "openai": kwargs["model"] = f"openai/{real_model}"
-        else: kwargs["model"] = f"{provider.provider_type}/{real_model}"
-        try:
-            res = await acompletion(**kwargs)
-            return JSONResponse(content=res.model_dump() if hasattr(res, 'model_dump') else res.dict())
-        except Exception as e: raise HTTPException(500, str(e))
-
-    # Gọi qua Router (Chuẩn)
+    # --- EXECUTION ---
     try:
         if body.get("stream", False):
             async def gen():
-                response = await ai_engine.router.acompletion(**kwargs)
+                response = await acompletion(**kwargs)
                 async for chunk in response:
-                    yield f"data: {chunk.model_dump_json()}\n\n"
+                    # model_dump_json() an toàn hơn str(chunk)
+                    data_str = chunk.model_dump_json()
+                    yield f"data: {data_str}\n\n"
                 yield "data: [DONE]\n\n"
             return StreamingResponse(gen(), media_type="text/event-stream")
         else:
-            response = await ai_engine.router.acompletion(**kwargs)
-            # Fix lỗi JSON cho n8n
-            data = response.model_dump() if hasattr(response, 'model_dump') else response.dict()
-            return JSONResponse(content=data)
+            response = await acompletion(**kwargs)
+            
+            # Dùng model_dump() để lấy Dictionary
+            if hasattr(response, 'model_dump'):
+                final_data = response.model_dump()
+            else:
+                final_data = response.dict() # Fallback cho bản cũ
+            
+            return JSONResponse(content=final_data)
             
     except Exception as e:
-        return JSONResponse(status_code=500, content={"error": {"message": str(e), "type": "server_error"}})
+        # Trả về JSON lỗi chuẩn
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": {
+                    "message": str(e),
+                    "type": "internal_server_error",
+                    "param": None,
+                    "code": 500
+                }
+            }
+        )
 
 # --- 3. MULTIMEDIA ---
+
 @router.post("/images/generations")
 async def image_gen(req: Request, k: GatewayKey=Depends(verify_usage), s: Session=Depends(get_session)):
     try: body=await req.json()
     except: raise HTTPException(400, "JSON Error")
     p, m = parse_model_alias(body.get("model",""), s)
     try: 
-        res = await image_generation(model=m, prompt=body.get("prompt"), api_key=p.api_key, api_base=p.base_url, n=1, size=body.get("size","1024x1024"))
-        return JSONResponse(content=res.model_dump() if hasattr(res, 'model_dump') else res.dict())
+        res = await image_generation(model=m, prompt=body.get("prompt"), api_key=p.api_key, api_base=p.base_url, n=body.get("n",1), size=body.get("size","1024x1024"))
+        data = res.model_dump() if hasattr(res, 'model_dump') else res.dict()
+        return JSONResponse(content=data)
     except Exception as e: return JSONResponse(status_code=500, content={"error": str(e)})
 
 @router.post("/videos/generations")
@@ -115,7 +131,8 @@ async def video_gen(req: Request, k: GatewayKey=Depends(verify_usage), s: Sessio
     p, m = parse_model_alias(body.get("model",""), s)
     try:
         res = await image_generation(model=m, prompt=body.get("prompt"), api_key=p.api_key, api_base=p.base_url, n=1)
-        return JSONResponse(content=res.model_dump() if hasattr(res, 'model_dump') else res.dict())
+        data = res.model_dump() if hasattr(res, 'model_dump') else res.dict()
+        return JSONResponse(content=data)
     except Exception as e: return JSONResponse(status_code=500, content={"error": str(e)})
 
 @router.post("/audio/speech")
@@ -125,7 +142,7 @@ async def tts(req: Request, k: GatewayKey=Depends(verify_usage), s: Session=Depe
     p, m = parse_model_alias(body.get("model",""), s)
     try:
         res = await speech(model=m, input=body.get("input"), voice=body.get("voice","alloy"), api_key=p.api_key, api_base=p.base_url)
-        return StreamingResponse(res.iter_content(1024), media_type="audio/mpeg")
+        return StreamingResponse(res.iter_content(chunk_size=1024), media_type="audio/mpeg")
     except Exception as e: return JSONResponse(status_code=500, content={"error": str(e)})
 
 @router.post("/audio/transcriptions")
@@ -133,5 +150,6 @@ async def stt(model: str=Form(...), file: UploadFile=File(...), k: GatewayKey=De
     p, m = parse_model_alias(model, s)
     try:
         res = await transcription(model=m, file=file.file, api_key=p.api_key, api_base=p.base_url)
-        return JSONResponse(content=res.model_dump() if hasattr(res, 'model_dump') else res.dict())
+        data = res.model_dump() if hasattr(res, 'model_dump') else res.dict()
+        return JSONResponse(content=data)
     except Exception as e: return JSONResponse(status_code=500, content={"error": str(e)})
