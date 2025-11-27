@@ -1,45 +1,43 @@
 import os
+import logging
 from typing import Optional
 from sqlmodel import Session, select
 from litellm import Router
 from app.models import Provider
-from app.config import REDIS_URL, ENABLE_CACHE, LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY
+from app.config import REDIS_URL, ENABLE_CACHE
+from app.observability import setup_observability  # <--- Import hàm setup
+
+# Setup Logger
+logger = logging.getLogger("app.engine")
 
 class AIEngine:
     def __init__(self):
         self.router: Optional[Router] = None
         
     def initialize(self, session: Session):
-        print("🔄 [Engine] Initializing...")
+        logger.info("🔄 [Engine] Initializing...")
         
-        # 1. Langfuse
-        if LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY:
-            os.environ["LANGFUSE_PUBLIC_KEY"] = LANGFUSE_PUBLIC_KEY
-            os.environ["LANGFUSE_SECRET_KEY"] = LANGFUSE_SECRET_KEY
-            from litellm import success_callback, failure_callback
-            if "langfuse" not in success_callback: success_callback.append("langfuse")
-            if "langfuse" not in failure_callback: failure_callback.append("langfuse")
-            print("✅ [Engine] Langfuse Logging Active")
+        # 1. Setup Observability (Langfuse)
+        # Tách logic ra module chuyên biệt để code engine gọn hơn
+        setup_observability()
 
         # 2. Load Providers -> Router
         providers = session.exec(select(Provider)).all()
         model_list = []
         
         for p in providers:
-            # --- FIX QUAN TRỌNG ---
-            # Ép buộc prefix để LiteLLM không bị lỗi "Provider NOT provided"
+            # Construct real model name
             if p.provider_type == "openai":
-                real_model = f"openai/{p.name}" # Luôn thêm openai/
+                real_model = f"openai/{p.name}" 
             elif p.provider_type == "azure":
                 real_model = f"azure/{p.name}"
             else:
-                # OpenRouter / Gemini thường đã có sẵn format chuẩn hoặc tự xử lý
                 real_model = f"{p.provider_type}/{p.name}"
 
             deployment = {
-                "model_name": p.name, # Đây là cái tên Gateway sẽ gọi (Alias)
+                "model_name": p.name, 
                 "litellm_params": {
-                    "model": real_model, # Đây là cái tên LiteLLM sẽ gọi xuống Provider
+                    "model": real_model, 
                     "api_key": p.api_key,
                 }
             }
@@ -51,25 +49,25 @@ class AIEngine:
 
         # 3. Init Router
         if not model_list:
-            print("⚠️ [Engine] No providers found. Router empty.")
+            logger.warning("⚠️ [Engine] No providers found. Router empty.")
             self.router = None
             return
 
         router_config = {
             "model_list": model_list,
-            "set_verbose": False
+            "set_verbose": False # Tắt verbose log của LiteLLM để terminal sạch
         }
         
         if REDIS_URL and ENABLE_CACHE:
             router_config["cache_responses"] = True
             os.environ["REDIS_URL"] = REDIS_URL
-            print("✅ [Engine] Semantic Caching Enabled")
+            logger.info("✅ [Engine] Semantic Caching Enabled")
 
         try:
             self.router = Router(**router_config)
-            print(f"🚀 [Engine] Router Ready with {len(model_list)} providers")
+            logger.info(f"🚀 [Engine] Router Ready with {len(model_list)} providers")
         except Exception as e:
-            print(f"❌ [Engine] Init Error: {e}")
+            logger.error(f"❌ [Engine] Init Error: {e}")
             self.router = None
 
     async def reload(self, session: Session):
