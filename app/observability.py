@@ -13,7 +13,7 @@ def setup_observability():
         logger.debug("[Observability] Langfuse keys missing. Skipping.")
         return
 
-    # 1. Setup Env Vars (Bắt buộc cho SDK v2)
+    # 1. Setup Env Vars
     os.environ["LANGFUSE_PUBLIC_KEY"] = LANGFUSE_PUBLIC_KEY
     os.environ["LANGFUSE_SECRET_KEY"] = LANGFUSE_SECRET_KEY
     if LANGFUSE_HOST:
@@ -21,12 +21,15 @@ def setup_observability():
 
     # 2. Hook vào LiteLLM
     try:
-        # Import check version
         import langfuse
-        version = getattr(langfuse, "version", None) or getattr(langfuse, "__version__", "unknown")
         
-        # Cảnh báo nếu lỡ cài phải v3 (dù đã chặn ở pyproject.toml)
-        if version != "unknown" and version.startswith("3."):
+        # --- FIX: Cách lấy version an toàn hơn ---
+        # Ưu tiên lấy __version__ (string) trước. 
+        # Tránh dùng langfuse.version vì nó có thể là module object.
+        version = getattr(langfuse, "__version__", "unknown")
+        
+        # Check kỹ: chỉ warning nếu version là string thực sự
+        if isinstance(version, str) and version.startswith("3."):
              logger.warning(f"⚠️ [Observability] Detected Langfuse v{version}. LiteLLM native callback works best with v2!")
 
         # Đăng ký Callback
@@ -41,4 +44,4 @@ def setup_observability():
     except ImportError:
         logger.error("❌ [Observability] Library 'langfuse' not found. Run `uv add 'langfuse>=2.59.7,<3.0.0'`")
     except Exception as e:
-        logger.error(f"❌ [Observability] Setup Failed: {e}")
+        logger.error(f"❌ [Observability] Setup Failed: {str(e)}")
