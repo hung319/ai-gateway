@@ -1,9 +1,10 @@
-from fastapi import FastAPI
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import FastAPI, status
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from contextlib import asynccontextmanager
-from sqlmodel import Session
+from sqlmodel import Session, text
 
-from app.database import create_db_and_tables, init_redis, close_redis, engine
+# LƯU Ý: Đã thêm 'redis_client' vào import để dùng cho health check
+from app.database import create_db_and_tables, init_redis, close_redis, engine, redis_client
 from app.models import GatewayKey
 from app.config import MASTER_TRACKER_ID
 from app.routers import admin, gateway
@@ -11,20 +12,72 @@ from app.engine import ai_engine
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # 1. Init DB
     create_db_and_tables()
+    
+    # 2. Check/Create Master Key
     with Session(engine) as session:
         if not session.get(GatewayKey, MASTER_TRACKER_ID):
             session.add(GatewayKey(key=MASTER_TRACKER_ID, name="👑 ADMIN TRACKER", usage_count=0, is_hidden=True))
             session.commit()
         
-        # Init AI Engine
+        # 3. Init AI Engine
         ai_engine.initialize(session)
     
+    # 4. Init Redis
     await init_redis()
+    
     yield
+    
+    # 5. Cleanup
     await close_redis()
 
 app = FastAPI(lifespan=lifespan, title="AI Gateway Enterprise")
+
+# --- HEALTH CHECK ENDPOINT (MỚI THÊM) ---
+@app.get("/health", tags=["System"])
+async def health_check():
+    """
+    Kiểm tra trạng thái hệ thống (Database & Redis).
+    Trả về 503 nếu một trong các component bị chết.
+    """
+    status_report = {
+        "status": "ok",
+        "components": {
+            "db": "unknown",
+            "redis": "disabled"
+        }
+    }
+    is_healthy = True
+
+    # 1. Check Database
+    try:
+        with Session(engine) as session:
+            session.exec(text("SELECT 1"))
+        status_report["components"]["db"] = "up"
+    except Exception as e:
+        status_report["components"]["db"] = f"down: {str(e)}"
+        is_healthy = False
+
+    # 2. Check Redis
+    if redis_client:
+        try:
+            await redis_client.ping()
+            status_report["components"]["redis"] = "up"
+        except Exception as e:
+            status_report["components"]["redis"] = f"down: {str(e)}"
+            is_healthy = False
+
+    # Trả về lỗi 503 nếu hệ thống không khỏe
+    if not is_healthy:
+        status_report["status"] = "degraded"
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, 
+            content=status_report
+        )
+    
+    return status_report
+# ----------------------------------------
 
 app.include_router(admin.router)
 app.include_router(gateway.router)
