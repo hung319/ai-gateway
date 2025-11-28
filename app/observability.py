@@ -1,47 +1,46 @@
 import os
 import logging
 import litellm
-from app.config import LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY, LANGFUSE_HOST
+# Import biến mới LANGFUSE_BASE_URL từ config
+from app.config import LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY, LANGFUSE_BASE_URL
 
 logger = logging.getLogger(__name__)
 
 def setup_observability():
     """
-    Cấu hình Langfuse (Python SDK v2).
+    Cấu hình Langfuse OpenTelemetry (OTEL).
+    Sử dụng LANGFUSE_BASE_URL làm nguồn Host duy nhất.
     """
+    # 1. Validate Keys
     if not (LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY):
         logger.debug("[Observability] Langfuse keys missing. Skipping.")
         return
 
-    # 1. Setup Env Vars
+    # 2. Setup Environment Variables cho LiteLLM OTEL
+    # LiteLLM/OTEL đọc trực tiếp từ os.environ
     os.environ["LANGFUSE_PUBLIC_KEY"] = LANGFUSE_PUBLIC_KEY
     os.environ["LANGFUSE_SECRET_KEY"] = LANGFUSE_SECRET_KEY
-    if LANGFUSE_HOST:
-        os.environ["LANGFUSE_HOST"] = LANGFUSE_HOST
+    
+    # Quan trọng: Map từ BASE_URL (của bạn) -> LANGFUSE_OTEL_HOST (của LiteLLM)
+    # .rstrip("/") để xóa dấu gạch chéo thừa nếu có (vd: .com/ -> .com)
+    otel_host = LANGFUSE_BASE_URL.rstrip("/")
+    os.environ["LANGFUSE_OTEL_HOST"] = otel_host
 
-    # 2. Hook vào LiteLLM
+    # 3. Kích hoạt LiteLLM Callback
     try:
-        import langfuse
+        # Check xem thư viện OTEL đã cài chưa
+        import opentelemetry
         
-        # --- FIX: Cách lấy version an toàn hơn ---
-        # Ưu tiên lấy __version__ (string) trước. 
-        # Tránh dùng langfuse.version vì nó có thể là module object.
-        version = getattr(langfuse, "__version__", "unknown")
+        # Đăng ký callback 'langfuse_otel' (chuẩn mới)
+        if "langfuse_otel" not in litellm.callbacks:
+            litellm.callbacks.append("langfuse_otel")
+            
+        logger.info(f"✅ [Observability] Langfuse OTEL Enabled")
+        logger.info(f"   🔗 Host: {otel_host}")
         
-        # Check kỹ: chỉ warning nếu version là string thực sự
-        if isinstance(version, str) and version.startswith("3."):
-             logger.warning(f"⚠️ [Observability] Detected Langfuse v{version}. LiteLLM native callback works best with v2!")
-
-        # Đăng ký Callback
-        if "langfuse" not in litellm.success_callback:
-            litellm.success_callback.append("langfuse")
-        
-        if "langfuse" not in litellm.failure_callback:
-            litellm.failure_callback.append("langfuse")
-
-        logger.info(f"✅ [Observability] Langfuse Integration Enabled (Lib v{version})")
-
     except ImportError:
-        logger.error("❌ [Observability] Library 'langfuse' not found. Run `uv add 'langfuse>=2.59.7,<3.0.0'`")
+        logger.error("❌ [Observability] Missing OTEL libraries.")
+        logger.error("Run: uv add opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp")
+        
     except Exception as e:
         logger.error(f"❌ [Observability] Setup Failed: {str(e)}")
