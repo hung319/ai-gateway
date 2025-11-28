@@ -3,8 +3,9 @@ from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from contextlib import asynccontextmanager
 from sqlmodel import Session, text
 
-# LƯU Ý: Đã thêm 'redis_client' vào import để dùng cho health check
-from app.database import create_db_and_tables, init_redis, close_redis, engine, redis_client
+
+from app.database import create_db_and_tables, init_redis, close_redis, engine
+import app.database as db_module
 from app.models import GatewayKey
 from app.config import MASTER_TRACKER_ID
 from app.routers import admin, gateway
@@ -60,13 +61,17 @@ async def health_check():
         is_healthy = False
 
     # 2. Check Redis
-    if redis_client:
+    if db_module.redis_client: 
         try:
-            await redis_client.ping()
+            await db_module.redis_client.ping()
             status_report["components"]["redis"] = "up"
         except Exception as e:
             status_report["components"]["redis"] = f"down: {str(e)}"
             is_healthy = False
+    else:
+        # Debug thêm: In ra để biết tại sao nó vẫn None (nếu cần)
+        # print("Redis client is still None inside module!")
+        pass
 
     # Trả về lỗi 503 nếu hệ thống không khỏe
     if not is_healthy:
