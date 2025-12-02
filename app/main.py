@@ -41,6 +41,26 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan, title="AI Gateway Enterprise")
 
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    error_msg = str(exc)
+    
+    # Log lỗi ra terminal để debug
+    print(f"❌ [Global Error] {error_msg}")
+    
+    # Trả về JSON thay vì HTML
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": {
+                "message": f"Provider Error or Internal Server Error: {error_msg}",
+                "type": "internal_server_error",
+                "code": 500,
+                "param": None
+            }
+        }
+    )
+
 # --- 1. CẤU HÌNH CORS (BYPASS) ---
 # Cho phép tất cả các domain khác gọi vào API này
 app.add_middleware(
