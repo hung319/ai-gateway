@@ -175,6 +175,7 @@
             <button class="tab-btn active" onclick="tab('config')" id="t-config">Config</button>
             <button class="tab-btn" onclick="tab('models')" id="t-models">Models</button>
             <button class="tab-btn" onclick="tab('stats')" id="t-stats">Stats</button>
+            <button class="tab-btn" onclick="tab('maps')" id="t-maps">Forwarding</button>
         </div>
 
         <div id="v-config">
@@ -273,6 +274,43 @@
             </div>
         </div>
 
+        <div id="v-maps" class="hidden">
+            <div class="grid-2">
+                <div class="card" style="height:fit-content">
+                    <h3><i class="fa-solid fa-shuffle"></i> Add Forward Rule</h3>
+                    <form id="mapForm">
+                        <label>Source Alias (Client requests this)</label>
+                        <input type="text" id="map_src" placeholder="e.g. gpt-4" required style="margin-bottom:10px">
+                        
+                        <label>Target Model (We use this)</label>
+                        <input type="text" id="map_target" placeholder="e.g. openai/gpt-4-turbo" required>
+                        <p style="font-size:0.75rem; color:var(--text-muted); margin-top:5px">
+                            Target must be valid: <code>provider/model_name</code>
+                        </p>
+                        
+                        <button class="btn btn-primary">Create Rule</button>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <h3>Current Rules <span id="mapTotal" class="badge-count">0</span></h3>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="width:35%">Source</th>
+                                    <th style="width:10%" class="text-center"><i class="fa-solid fa-arrow-right"></i></th>
+                                    <th style="width:35%">Target</th>
+                                    <th style="width:20%" class="text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="mapList"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div id="v-stats" class="hidden">
             <div class="card">
                 <h3>
@@ -316,7 +354,8 @@
         const STATE = {
             p: { data: [], filtered: [], page: 1, size: 10 },        // Providers
             k: { data: [], filtered: [], page: 1, size: 20 },        // Keys
-            m: { data: [], filtered: [], page: 1, size: 20 }         // Models
+            m: { data: [], filtered: [], page: 1, size: 20 },        // Models
+            map: { data: [] }                                        // Forwarding Maps
         };
 
         // --- 2. API & AUTH LOGIC ---
@@ -471,6 +510,41 @@
             updatePagination('m', filtered.length);
         }
 
+        // --- MAPS (NEW) ---
+        async function loadMap() {
+            const d = await api('/api/admin/maps');
+            if(d) {
+                STATE.map.data = d;
+                document.getElementById('mapTotal').innerText = d.length;
+                renderMap();
+            }
+        }
+
+        function renderMap() {
+            const list = document.getElementById('mapList');
+            if(STATE.map.data.length === 0) {
+                list.innerHTML = '<tr><td colspan="4" class="text-center text-muted" style="padding:15px">No forwarding rules</td></tr>';
+                return;
+            }
+            list.innerHTML = STATE.map.data.map(m => `
+                <tr>
+                    <td style="font-weight:bold; color:var(--primary)">${m.source_model}</td>
+                    <td class="text-center text-muted"><i class="fa-solid fa-arrow-right"></i></td>
+                    <td>${m.target_model}</td>
+                    <td class="text-right">
+                        <button class="btn-danger-ghost" onclick="delMap('${m.source_model}')">Del</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function delMap(src) {
+            if(confirm(`Delete rule for '${src}'?`)) {
+                await api(`/api/admin/maps/${src}`, 'DELETE');
+                loadMap();
+            }
+        }
+
         // --- 4. SHARED UTILS ---
         function updatePagination(type, totalItems) {
             const s = STATE[type];
@@ -508,10 +582,14 @@
 
         function tab(t) {
             document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-            ['v-config','v-stats','v-models'].forEach(id => document.getElementById(id).classList.add('hidden'));
+            ['v-config','v-stats','v-models','v-maps'].forEach(id => document.getElementById(id).classList.add('hidden'));
             document.getElementById(`t-${t}`).classList.add('active');
             document.getElementById(`v-${t}`).classList.remove('hidden');
-            if(t==='config') loadP(); if(t==='stats') loadK(); if(t==='models') loadM();
+            
+            if(t==='config') loadP(); 
+            if(t==='stats') loadK(); 
+            if(t==='models') loadM();
+            if(t==='maps') loadMap(); // Handle Maps
         }
 
         function copyTxt(txt) {
@@ -549,6 +627,19 @@
             const r=await api('/api/admin/keys','POST',{name:document.getElementById('k_name').value, custom_key:document.getElementById('k_cust').value||null}); 
             if(r){ copyTxt(r.key); e.target.reset(); tab('stats'); }
         };
+        
+        // --- MAP FORM HANDLER ---
+        document.getElementById('mapForm').onsubmit = async(e) => {
+            e.preventDefault();
+            const src = document.getElementById('map_src').value.trim();
+            const target = document.getElementById('map_target').value.trim();
+            if(!src || !target) return;
+            
+            const r = await api('/api/admin/maps', 'POST', { source_model: src, target_model: target });
+            if(r) { e.target.reset(); loadMap(); }
+            else { alert('Error: Alias might already exist'); }
+        };
+
         async function delP(n){if(confirm('Delete provider?')) {await api(`/api/admin/providers/${n}`,'DELETE'); loadP();}}
         async function delK(k){if(confirm('Delete key?')) {await api(`/api/admin/keys/${k}`,'DELETE'); loadK();}}
 
