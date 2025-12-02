@@ -1,7 +1,7 @@
 import httpx
 from sqlmodel import select, Session
 from fastapi import HTTPException
-from app.models import Provider
+from app.models import Provider, ModelMap
 from app.config import MODEL_FETCH_TIMEOUT
 
 async def fetch_provider_models(client: httpx.AsyncClient, provider: Provider):
@@ -33,6 +33,12 @@ async def fetch_provider_models(client: httpx.AsyncClient, provider: Provider):
     return [{"id": f"{provider.name}/{m}", "object": "model", "created": 1700000000, "owned_by": provider.provider_type} for m in fetched_ids]
 
 def parse_model_alias(raw_model: str, session: Session):
+    # 1. Check Forwarding Map
+    forward_rule = session.get(ModelMap, raw_model)
+    if forward_rule:
+        raw_model = forward_rule.target_model
+
+    # 2. Standard Logic
     if "/" not in raw_model:
         providers = session.exec(select(Provider)).all()
         for p in providers:
