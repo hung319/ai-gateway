@@ -19,3 +19,7 @@ class AdminSession(SQLModel, table=True):
     session_id: str = Field(primary_key=True, index=True)
     created_at: float = Field(default_factory=lambda: time.time())
     expires_at: float
+
+class ModelMap(SQLModel, table=True):
+    source_model: str = Field(primary_key=True, index=True) # VD: gpt-4
+    target_model: str # VD: openai/gpt-4-turbo
