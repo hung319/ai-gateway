@@ -4,7 +4,7 @@ from sqlmodel import Session, select
 from pydantic import BaseModel
 from typing import Optional
 from app.database import get_session
-from app.models import Provider, GatewayKey
+from app.models import Provider, GatewayKey, ModelMap
 from app.security import get_current_admin, create_session
 from app.engine import ai_engine
 from app.config import MASTER_KEY
@@ -53,4 +53,29 @@ async def lk(s: Session = Depends(get_session)): return s.exec(select(GatewayKey
 async def dk(key: str, s: Session = Depends(get_session)):
     k = s.get(GatewayKey, key)
     if k and not k.is_hidden: s.delete(k); s.commit()
+    return {"status": "ok"}
+
+# --- MODEL MAP ROUTES (NEW) ---
+@router.get("/admin/maps", dependencies=[Depends(get_current_admin)])
+async def list_maps(s: Session = Depends(get_session)):
+    return s.exec(select(ModelMap)).all()
+
+class MapReq(BaseModel):
+    source_model: str
+    target_model: str
+
+@router.post("/admin/maps", dependencies=[Depends(get_current_admin)])
+async def create_map(d: MapReq, s: Session = Depends(get_session)):
+    if s.get(ModelMap, d.source_model):
+        raise HTTPException(400, "Mapping exists")
+    s.add(ModelMap(source_model=d.source_model, target_model=d.target_model))
+    s.commit()
+    return {"status": "ok"}
+
+@router.delete("/admin/maps/{source}", dependencies=[Depends(get_current_admin)])
+async def delete_map(source: str, s: Session = Depends(get_session)):
+    m = s.get(ModelMap, source)
+    if m:
+        s.delete(m)
+        s.commit()
     return {"status": "ok"}
