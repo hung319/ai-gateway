@@ -15,7 +15,10 @@ dependencies = [
     "python-multipart",
     "redis",
     "langfuse==2.59.7",
-    "python-dotenv"
+    "python-dotenv",
+    "opentelemetry-api>=1.39.1",
+    "opentelemetry-sdk>=1.39.1",
+    "opentelemetry-exporter-otlp>=1.39.1",
 ]
 
 [tool.uv]
