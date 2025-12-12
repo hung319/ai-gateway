@@ -6,6 +6,23 @@ from fastapi.responses import StreamingResponse, JSONResponse
 from sqlmodel import Session, select
 from litellm import acompletion, image_generation, speech, transcription
 
+# --- IMPORT CÁC LOẠI LỖI CỦA LITELLM ---
+from litellm.exceptions import (
+    APIConnectionError,
+    APIError,
+    AuthenticationError,
+    BadRequestError,
+    BudgetExceededError,
+    ContentPolicyViolationError,
+    ContextWindowExceededError,
+    NotFoundError,
+    PermissionDeniedError,
+    RateLimitError,
+    ServiceUnavailableError,
+    Timeout,
+    UnprocessableEntityError,
+)
+
 from app.database import get_session, redis_client
 from app.models import Provider, GatewayKey
 from app.security import verify_usage
@@ -68,6 +85,7 @@ async def chat(req: Request, k: GatewayKey=Depends(verify_usage), s: Session=Dep
         "messages": body.get("messages"),
         "api_key": provider.api_key,
         "metadata": metadata,
+        # Lọc các tham số khác
         **{k: v for k, v in body.items() if k not in ["model", "messages"]}
     }
 
@@ -77,33 +95,78 @@ async def chat(req: Request, k: GatewayKey=Depends(verify_usage), s: Session=Dep
 
     # --- EXECUTION ---
     try:
+        # 1. Gọi acompletion NGAY LẬP TỨC để bắt lỗi khởi tạo (Auth, RateLimit, TokenLimit...)
+        # Nếu lỗi ở đây, nó sẽ nhảy xuống except block và trả về JSON đúng chuẩn.
+        response = await acompletion(**kwargs)
+
+        # 2. Xử lý Stream
         if body.get("stream", False):
             async def gen():
-                response = await acompletion(**kwargs)
-                async for chunk in response:
-                    # model_dump_json() an toàn hơn str(chunk)
-                    data_str = chunk.model_dump_json()
-                    yield f"data: {data_str}\n\n"
-                yield "data: [DONE]\n\n"
-            return StreamingResponse(gen(), media_type="text/event-stream")
-        else:
-            response = await acompletion(**kwargs)
+                try:
+                    # response là một async generator khi stream=True
+                    async for chunk in response:
+                        if chunk:
+                            data_str = chunk.model_dump_json()
+                            yield f"data: {data_str}\n\n"
+                    yield "data: [DONE]\n\n"
+                except Exception as e:
+                    # Lỗi xảy ra *giữa* chừng khi đang stream (ít gặp hơn)
+                    # Lúc này header 200 đã gửi rồi, nên chỉ có thể gửi text lỗi
+                    err_payload = json.dumps({"error": str(e)})
+                    yield f"data: {err_payload}\n\n"
             
+            return StreamingResponse(gen(), media_type="text/event-stream")
+        
+        # 3. Xử lý Non-Stream
+        else:
             # Dùng model_dump() để lấy Dictionary
             if hasattr(response, 'model_dump'):
                 final_data = response.model_dump()
             else:
-                final_data = response.dict() # Fallback cho bản cũ
+                final_data = response.dict() 
             
             return JSONResponse(content=final_data)
             
+    # --- BẮT CÁC LỖI CỤ THỂ CỦA LITELLM ---
+    except (
+        AuthenticationError,
+        BadRequestError,      # Gồm ContextWindowExceededError, ContentPolicyViolationError
+        NotFoundError,
+        PermissionDeniedError,
+        RateLimitError,
+        ServiceUnavailableError,
+        Timeout,
+        UnprocessableEntityError,
+        APIConnectionError,
+        APIError,
+        BudgetExceededError
+    ) as e:
+        # Lấy status_code từ lỗi (mặc định 500 nếu không có)
+        error_code = getattr(e, "status_code", 500)
+        if isinstance(e, BudgetExceededError): error_code = 400 # Budget lỗi thường là 400
+        
+        # Đảm bảo code là int
+        if not isinstance(error_code, int): error_code = 500
+
+        return JSONResponse(
+            status_code=error_code,
+            content={
+                "error": {
+                    "message": str(e), # Message đầy đủ (bao gồm link shop, lý do...)
+                    "type": type(e).__name__,
+                    "param": None,
+                    "code": error_code
+                }
+            }
+        )
+
     except Exception as e:
-        # Trả về JSON lỗi chuẩn
+        # Catch-all cho lỗi hệ thống (Code lỗi, DB lỗi...)
         return JSONResponse(
             status_code=500,
             content={
                 "error": {
-                    "message": str(e),
+                    "message": f"Internal Server Error: {str(e)}",
                     "type": "internal_server_error",
                     "param": None,
                     "code": 500
@@ -112,6 +175,7 @@ async def chat(req: Request, k: GatewayKey=Depends(verify_usage), s: Session=Dep
         )
 
 # --- 3. MULTIMEDIA ---
+# (Các phần này giữ nguyên hoặc có thể áp dụng khối try/except tương tự như trên nếu muốn bắt lỗi chi tiết cho ảnh/voice)
 
 @router.post("/images/generations")
 async def image_gen(req: Request, k: GatewayKey=Depends(verify_usage), s: Session=Depends(get_session)):
