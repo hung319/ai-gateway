@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Database & Security
+DATABASE_URL = os.getenv("DATABASE_URL", "")
 DB_PATH = os.getenv("DB_PATH", "gateway.db")
 MASTER_KEY = os.getenv("MASTER_KEY", "sk-master-secret-123")
 MASTER_TRACKER_ID = "MASTER_ADMIN_TRACKER"
