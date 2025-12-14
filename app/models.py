@@ -14,6 +14,12 @@ class GatewayKey(SQLModel, table=True):
     usage_count: int = Field(default=0)
     is_active: bool = Field(default=True)
     is_hidden: bool = Field(default=False)
+    
+    # --- New Fields for Limits ---
+    # Rate Limit: Requests Per Minute (RPM). None = Unlimited.
+    rate_limit: Optional[int] = Field(default=None, nullable=True)
+    # Usage Limit: Tổng số request tối đa được phép (Quota). None = Unlimited.
+    usage_limit: Optional[int] = Field(default=None, nullable=True)
 
 class AdminSession(SQLModel, table=True):
     session_id: str = Field(primary_key=True, index=True)

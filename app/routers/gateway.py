@@ -1,37 +1,67 @@
 import json
 import asyncio
 import httpx
-import inspect  # <--- 1. Import thư viện inspect
-from fastapi import APIRouter, Request, Depends, HTTPException, UploadFile, File, Form
+import inspect
+import time
+from fastapi import APIRouter, Request, Depends, HTTPException, UploadFile, File, Form, status
 from fastapi.responses import StreamingResponse, JSONResponse
 from sqlmodel import Session, select
 from litellm import acompletion, image_generation, speech, transcription
 
-# --- 2. IMPORT DYNAMIC EXCEPTIONS ---
-# Thay vì import từng cái, ta import module exceptions
+# --- IMPORT DYNAMIC EXCEPTIONS ---
 import litellm.exceptions
 
-# --- 3. TỰ ĐỘNG LẤY TẤT CẢ LỖI ---
-# Đoạn code này sẽ quét module litellm.exceptions, tìm tất cả các class
-# kế thừa từ Exception và gom vào một tuple.
+# --- TỰ ĐỘNG LẤY TẤT CẢ LỖI TỪ LITELLM ---
 LITELLM_EXCEPTIONS = tuple(
     member for name, member in inspect.getmembers(litellm.exceptions)
     if inspect.isclass(member) and issubclass(member, Exception)
 )
-# Kết quả: LITELLM_EXCEPTIONS sẽ chứa (BadRequestError, RateLimitError, ...)
 
 from app.database import get_session, redis_client
 from app.models import Provider, GatewayKey
 from app.security import verify_usage
 from app.utils import fetch_provider_models, parse_model_alias
-from app.engine import ai_engine
 from app.config import CACHE_TTL
 
 router = APIRouter(prefix="/v1", tags=["Gateway"])
 
+# --- HELPER: CHECK LIMITS ---
+async def check_limits(k: GatewayKey):
+    """
+    Kiểm tra Usage Limit (Quota) và Rate Limit (RPM).
+    Raise HTTPException nếu vượt quá giới hạn.
+    """
+    # 1. Check Usage Limit (Quota)
+    if k.usage_limit is not None and k.usage_count >= k.usage_limit:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="Usage limit exceeded for this API Key."
+        )
+
+    # 2. Check Rate Limit (RPM)
+    if k.rate_limit is not None:
+        if redis_client:
+            # Sử dụng Redis để đếm request trong cửa sổ 60s
+            key_redis = f"ratelimit:{k.key}"
+            current_count = await redis_client.incr(key_redis)
+            if current_count == 1:
+                await redis_client.expire(key_redis, 60)
+            
+            if current_count > k.rate_limit:
+                raise HTTPException(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail="Rate limit exceeded."
+                )
+        else:
+            # Fallback nếu không có Redis (Simple Warning log or pass)
+            pass
+
 # --- 1. LIST MODELS ---
 @router.get("/models")
 async def list_models(k: GatewayKey=Depends(verify_usage), s: Session=Depends(get_session)):
+    # Check limit cho list models (optional, thường thì không cần tính quota nhưng có thể tính rate limit)
+    await check_limits(k)
+
     if redis_client:
         try:
             c = await redis_client.get("gw:models")
@@ -53,6 +83,9 @@ async def list_models(k: GatewayKey=Depends(verify_usage), s: Session=Depends(ge
 # --- 2. CHAT COMPLETIONS ---
 @router.post("/chat/completions")
 async def chat(req: Request, k: GatewayKey=Depends(verify_usage), s: Session=Depends(get_session)):
+    # --- CHECK LIMITS ---
+    await check_limits(k)
+
     try: 
         body = await req.json()
     except: 
@@ -82,7 +115,7 @@ async def chat(req: Request, k: GatewayKey=Depends(verify_usage), s: Session=Dep
         "messages": body.get("messages"),
         "api_key": provider.api_key,
         "metadata": metadata,
-        **{k: v for k, v in body.items() if k not in ["model", "messages"]}
+        **{key: val for key, val in body.items() if key not in ["model", "messages"]}
     }
 
     if provider.base_url:
@@ -117,13 +150,9 @@ async def chat(req: Request, k: GatewayKey=Depends(verify_usage), s: Session=Dep
                 final_data = response.dict() 
             return JSONResponse(content=final_data)
             
-    # --- 4. BẮT LỖI TỰ ĐỘNG (Dùng biến LITELLM_EXCEPTIONS) ---
+    # --- BẮT LỖI TỰ ĐỘNG ---
     except LITELLM_EXCEPTIONS as e:
-        # Lấy status_code động từ object lỗi
-        # Nếu lỗi không có status_code, mặc định là 500
         error_code = getattr(e, "status_code", 500)
-        
-        # Một số lỗi đặc biệt như BudgetExceededError có thể không có status code chuẩn
         if not isinstance(error_code, int): 
             error_code = 400
 
@@ -131,8 +160,8 @@ async def chat(req: Request, k: GatewayKey=Depends(verify_usage), s: Session=Dep
             status_code=error_code,
             content={
                 "error": {
-                    "message": str(e), # Message đầy đủ từ LiteLLM
-                    "type": type(e).__name__, # Tên class lỗi (VD: ContextWindowExceededError)
+                    "message": str(e),
+                    "type": type(e).__name__,
                     "param": None,
                     "code": error_code
                 }
@@ -140,7 +169,6 @@ async def chat(req: Request, k: GatewayKey=Depends(verify_usage), s: Session=Dep
         )
 
     except Exception as e:
-        # Catch-all cho lỗi hệ thống khác (Python bugs, DB errors...)
         return JSONResponse(
             status_code=500,
             content={
@@ -154,10 +182,10 @@ async def chat(req: Request, k: GatewayKey=Depends(verify_usage), s: Session=Dep
         )
 
 # --- 3. MULTIMEDIA ---
-# (Phần này giữ nguyên, bạn cũng có thể áp dụng LITELLM_EXCEPTIONS vào đây nếu muốn)
 
 @router.post("/images/generations")
 async def image_gen(req: Request, k: GatewayKey=Depends(verify_usage), s: Session=Depends(get_session)):
+    await check_limits(k) # Check Limit
     try: body=await req.json()
     except: raise HTTPException(400, "JSON Error")
     p, m = parse_model_alias(body.get("model",""), s)
@@ -169,6 +197,7 @@ async def image_gen(req: Request, k: GatewayKey=Depends(verify_usage), s: Sessio
 
 @router.post("/videos/generations")
 async def video_gen(req: Request, k: GatewayKey=Depends(verify_usage), s: Session=Depends(get_session)):
+    await check_limits(k) # Check Limit
     try: body=await req.json()
     except: raise HTTPException(400, "JSON Error")
     p, m = parse_model_alias(body.get("model",""), s)
@@ -180,6 +209,7 @@ async def video_gen(req: Request, k: GatewayKey=Depends(verify_usage), s: Sessio
 
 @router.post("/audio/speech")
 async def tts(req: Request, k: GatewayKey=Depends(verify_usage), s: Session=Depends(get_session)):
+    await check_limits(k) # Check Limit
     try: body=await req.json()
     except: raise HTTPException(400, "JSON Error")
     p, m = parse_model_alias(body.get("model",""), s)
@@ -190,6 +220,7 @@ async def tts(req: Request, k: GatewayKey=Depends(verify_usage), s: Session=Depe
 
 @router.post("/audio/transcriptions")
 async def stt(model: str=Form(...), file: UploadFile=File(...), k: GatewayKey=Depends(verify_usage), s: Session=Depends(get_session)):
+    await check_limits(k) # Check Limit
     p, m = parse_model_alias(model, s)
     try:
         res = await transcription(model=m, file=file.file, api_key=p.api_key, api_base=p.base_url)

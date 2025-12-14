@@ -182,17 +182,17 @@
                     <input type="search" id="kSearch" placeholder="Search by App Name..." oninput="searchK()">
                 </div>
 
-                <div class="table-container">
-                    <table>
+                <div class="table-container" style="min-height: 250px;">
+                    <table style="width: 100%; border-collapse: collapse;">
                         <thead>
-                            <tr>
-                                <th class="col-name">App Name</th>
-                                <th class="col-key">API Key</th>
-                                <th class="col-usage text-center">Reqs</th>
-                                <th class="col-action text-right">Act</th>
+                            <tr style="border-bottom: 2px solid var(--border);">
+                                <th class="col-name" style="text-align:left; padding:10px;">App Name</th>
+                                <th class="col-key" style="text-align:left; padding:10px;">API Key</th>
+                                <th class="col-action" style="text-align:right; padding:10px;">Actions</th>
                             </tr>
                         </thead>
-                        <tbody id="kList"></tbody>
+                        <tbody id="kList">
+                            </tbody>
                     </table>
                 </div>
                  <div id="kPagination" class="pagination hidden">
@@ -201,6 +201,43 @@
                     <button class="page-btn" onclick="changePage('k', 1)" id="btnNext_k"><i class="fa-solid fa-chevron-right"></i></button>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <div id="keyModal" class="modal-overlay">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeKeyModal()">&times;</span>
+            <div class="modal-header">
+                <h2 class="modal-title">Key Details</h2>
+                <i class="fa-solid fa-pen-to-square edit-toggle" onclick="enableEditMode()" id="editBtn" title="Edit"></i>
+            </div>
+            
+            <form id="keyEditForm">
+                <input type="hidden" id="m_key_id">
+                
+                <div class="form-group">
+                    <label class="form-label">App Name</label>
+                    <input type="text" id="m_name" class="form-input" disabled>
+                </div>
+
+                <div class="grid-2" style="gap:15px">
+                    <div class="form-group">
+                        <label class="form-label">Rate Limit (RPM)</label>
+                        <input type="number" id="m_rate" class="form-input" placeholder="Unlimited" disabled>
+                        <p class="form-helper">Requests per minute</p>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Usage Limit</label>
+                        <input type="number" id="m_quota" class="form-input" placeholder="Unlimited" disabled>
+                        <p class="form-helper">Current Usage: <span id="m_used" style="font-weight:bold; color:var(--primary)">0</span></p>
+                    </div>
+                </div>
+
+                <div id="btnSaveGroup" class="modal-actions hidden">
+                    <button type="button" class="btn" style="background:var(--bg-main); border:1px solid var(--border); color:var(--text-main)" onclick="disableEditMode()">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveKeyChanges()">Save Changes</button>
+                </div>
+            </form>
         </div>
     </div>
 
