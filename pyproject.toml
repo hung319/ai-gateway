@@ -19,8 +19,9 @@ dependencies = [
     "opentelemetry-api>=1.39.1",
     "opentelemetry-sdk>=1.39.1",
     "opentelemetry-exporter-otlp>=1.39.1",
-    "psycopg2-binary>=2.9.11",
     "alembic>=1.17.2",
+    "asyncpg>=0.31.0",
+    "aiosqlite>=0.22.0",
 ]
 
 [tool.uv]

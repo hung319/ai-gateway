@@ -1,45 +1,50 @@
-import os
-import sys
+import asyncio
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
 from sqlalchemy import pool
-
+from sqlalchemy.ext.asyncio import async_engine_from_config
+from sqlmodel import SQLModel
 from alembic import context
 
-# --- 1. SETUP PATH & IMPORTS ---
-# Thêm thư mục hiện tại vào sys.path để Python tìm thấy module 'app'
-sys.path.append(os.getcwd())
-
-# Import Config & Models của App
-from app.config import DATABASE_URL, DB_PATH
-from app.models import * # Import tất cả models để SQLModel nhận diện
-from sqlmodel import SQLModel
-
-# --- 2. CONFIG ALEMBIC ---
+# 1. Import Config & Models
+# Import DATABASE_URL từ app.config để đồng bộ với logic tự động đổi driver
+from app.config import DATABASE_URL
+# Import tất cả các model để SQLModel.metadata nhận diện được bảng
+from app.models import * # this is the Alembic Config object, which provides
+# access to the values within the .ini file in use.
 config = context.config
+
+# Interpret the config file for Python logging.
+# This line sets up loggers basically.
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# --- 3. SET TARGET METADATA ---
-# Đây là chìa khóa để Alembic tự detect thay đổi trong code Model
+# 2. Ghi đè URL trong file alembic.ini bằng URL từ biến môi trường/config.py
+# Điều này đảm bảo Alembic dùng đúng chuỗi kết nối (postgresql+asyncpg://...)
+config.set_main_option("sqlalchemy.url", DATABASE_URL)
+
+# add your model's MetaData object here
+# for 'autogenerate' support
 target_metadata = SQLModel.metadata
 
-# --- 4. XỬ LÝ URL DATABASE ---
-# Logic: Lấy URL từ biến môi trường/Config thay vì file alembic.ini
-def get_url():
-    # Ưu tiên PostgreSQL
-    if DATABASE_URL and DATABASE_URL.startswith("postgresql"):
-        return DATABASE_URL
-    # Fallback về SQLite (tuy nhiên Alembic thường dùng cho SQL Server/Postgres hơn)
-    return f"sqlite:///{DB_PATH}"
-
-# Ghi đè URL vào config của Alembic object
-config.set_main_option("sqlalchemy.url", get_url())
+# other values from the config, defined by the needs of env.py,
+# can be acquired:
+# my_important_option = config.get_main_option("my_important_option")
+# ... etc.
 
 def run_migrations_offline() -> None:
-    """Chạy migration ở chế độ 'offline' (chỉ tạo file SQL, không kết nối DB)."""
-    url = get_url()
+    """Run migrations in 'offline' mode.
+
+    This configures the context with just a URL
+    and not an Engine, though an Engine is acceptable
+    here as well.  By skipping the Engine creation
+    we don't even need a DBAPI to be available.
+
+    Calls to context.execute() here emit the given string to the
+    script output.
+
+    """
+    url = config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -50,24 +55,44 @@ def run_migrations_offline() -> None:
     with context.begin_transaction():
         context.run_migrations()
 
-def run_migrations_online() -> None:
-    """Chạy migration ở chế độ 'online' (kết nối trực tiếp vào DB)."""
-    
-    # Tạo Engine từ config đã được inject URL
-    connectable = engine_from_config(
+
+def do_run_migrations(connection):
+    """
+    Hàm thực thi migration đồng bộ.
+    Hàm này sẽ được gọi bên trong connection.run_sync()
+    """
+    context.configure(connection=connection, target_metadata=target_metadata)
+
+    with context.begin_transaction():
+        context.run_migrations()
+
+
+async def run_async_migrations() -> None:
+    """In this scenario we need to create an Engine
+    and associate a connection with the context.
+
+    """
+    # Tạo Async Engine từ config
+    connectable = async_engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
 
-    with connectable.connect() as connection:
-        context.configure(
-            connection=connection, 
-            target_metadata=target_metadata
-        )
+    async with connectable.connect() as connection:
+        # Chuyển context sang Sync để chạy Alembic
+        await connection.run_sync(do_run_migrations)
 
-        with context.begin_transaction():
-            context.run_migrations()
+    await connectable.dispose()
+
+
+def run_migrations_online() -> None:
+    """Run migrations in 'online' mode.
+    
+    Khởi chạy Event Loop để chạy Async Engine.
+    """
+    asyncio.run(run_async_migrations())
+
 
 if context.is_offline_mode():
     run_migrations_offline()

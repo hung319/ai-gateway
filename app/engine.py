@@ -1,11 +1,12 @@
 import os
 import logging
 from typing import Optional
-from sqlmodel import Session, select
+from sqlmodel import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from litellm import Router
 from app.models import Provider
 from app.config import REDIS_URL, ENABLE_CACHE
-from app.observability import setup_observability  # <--- Import hàm setup
+from app.observability import setup_observability
 
 # Setup Logger
 logger = logging.getLogger("app.engine")
@@ -14,15 +15,21 @@ class AIEngine:
     def __init__(self):
         self.router: Optional[Router] = None
         
-    def initialize(self, session: Session):
+    async def initialize(self, session: AsyncSession):
         logger.info("🔄 [Engine] Initializing...")
         
         # 1. Setup Observability (Langfuse)
-        # Tách logic ra module chuyên biệt để code engine gọn hơn
         setup_observability()
 
-        # 2. Load Providers -> Router
-        providers = session.exec(select(Provider)).all()
+        # 2. Load Providers -> Router (Async DB Call)
+        # SỬA LỖI Ở ĐÂY: Dùng .execute() thay vì .exec()
+        try:
+            result = await session.execute(select(Provider))
+            providers = result.scalars().all() # .scalars() giúp lấy ra object Provider thực sự
+        except Exception as e:
+            logger.error(f"⚠️ [Engine] Database error: {e}")
+            providers = []
+        
         model_list = []
         
         for p in providers:
@@ -32,6 +39,7 @@ class AIEngine:
             elif p.provider_type == "azure":
                 real_model = f"azure/{p.name}"
             else:
+                # OpenRouter / Gemini / Others
                 real_model = f"{p.provider_type}/{p.name}"
 
             deployment = {
@@ -55,7 +63,7 @@ class AIEngine:
 
         router_config = {
             "model_list": model_list,
-            "set_verbose": False # Tắt verbose log của LiteLLM để terminal sạch
+            "set_verbose": False # Tắt verbose log để đỡ rác console
         }
         
         if REDIS_URL and ENABLE_CACHE:
@@ -64,13 +72,15 @@ class AIEngine:
             logger.info("✅ [Engine] Semantic Caching Enabled")
 
         try:
+            # Router khởi tạo là Sync (CPU bound setup), không cần await
             self.router = Router(**router_config)
             logger.info(f"🚀 [Engine] Router Ready with {len(model_list)} providers")
         except Exception as e:
             logger.error(f"❌ [Engine] Init Error: {e}")
             self.router = None
 
-    async def reload(self, session: Session):
-        self.initialize(session)
+    async def reload(self, session: AsyncSession):
+        await self.initialize(session)
 
+# Global Instance
 ai_engine = AIEngine()
