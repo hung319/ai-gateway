@@ -1,6 +1,7 @@
 from fastapi import FastAPI, status
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
-from fastapi.middleware.cors import CORSMiddleware  # <--- Import CORS
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles  # <--- 1. Import StaticFiles
 from contextlib import asynccontextmanager
 from sqlmodel import Session, text
 
@@ -40,6 +41,11 @@ async def lifespan(app: FastAPI):
     await close_redis()
 
 app = FastAPI(lifespan=lifespan, title="AI Gateway Enterprise")
+
+# --- 0. STATIC FILES (NEW) ---
+# Mount thư mục static để phục vụ CSS/JS
+# Lưu ý: FastAPI sẽ tìm file trong thư mục 'app/static' khi client gọi '/static/...'
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 # --- 1. CẤU HÌNH CORS (BYPASS) ---
 # Cho phép tất cả các domain khác gọi vào API này
@@ -104,6 +110,7 @@ async def root(): return RedirectResponse(url="/panel")
 @app.get("/panel", response_class=HTMLResponse, include_in_schema=False)
 async def panel():
     try:
+        # Đọc file HTML đã tách CSS/JS
         with open("app/templates/panel.html", "r", encoding="utf-8") as f: 
             return f.read()
     except FileNotFoundError:
