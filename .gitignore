@@ -1,0 +1,77 @@
+# --- 1. Python & Build ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# --- 2. Virtual Environment (uv / venv) ---
+# Thư mục môi trường ảo do uv tạo ra
+.venv/
+venv/
+env/
+ENV/
+
+# --- 3. Environment Variables & Secrets (QUAN TRỌNG) ---
+# Tuyệt đối không commit file chứa key, password
+.env
+.env.local
+.env.test
+.env.*
+!.env.example
+start.sh
+
+# --- 4. Database (SQLite & Local Data) ---
+# File database SQLite
+*.db
+*.sqlite3
+*.sqlite
+
+# Thư mục data mount từ Docker (nếu bạn map volume ra ngoài)
+data/
+postgres_data/
+redis_data/
+
+# --- 5. IDE & Editors ---
+# Cấu hình riêng của VS Code, PyCharm
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# --- 6. Logs & OS Files ---
+*.log
+logs/
+.DS_Store
+Thumbs.db
+
+# --- 7. Testing & Coverage ---
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+
+# --- 8. Docker ---
+# File override cho docker-compose (thường dùng debug local)
+docker-compose.override.yml
+
+# --- Lưu ý ---
+# KHÔNG ignore uv.lock (giống package-lock.json, cần commit để đồng bộ version)
+# KHÔNG ignore thư mục migrations/ (chứa version lịch sử DB)

@@ -20,7 +20,11 @@ dependencies = [
     "opentelemetry-sdk>=1.39.1",
     "opentelemetry-exporter-otlp>=1.39.1",
     "psycopg2-binary>=2.9.11",
+    "alembic>=1.17.2",
 ]
 
 [tool.uv]
 package = true
+
+[tool.setuptools]
+packages = ["app"]
