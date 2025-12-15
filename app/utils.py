@@ -68,17 +68,29 @@ async def parse_model_alias(raw_model: str, session: AsyncSession):
     Phân giải Model Alias -> (Provider, Real Model Name).
     Hỗ trợ Async Database.
     """
+    if not raw_model:
+         raw_model = "gpt-3.5-turbo"
+
     # 1. Check Forwarding Map (Async)
-    forward_rule = await session.get(ModelMap, raw_model)
+    # Lưu ý: Nếu source_model KHÔNG phải là Primary Key của ModelMap, 
+    # hãy dùng select().where() thay vì session.get()
+    # Ở đây giả sử source_model có thể tìm được bằng query
+    stmt_map = select(ModelMap).where(ModelMap.source_model == raw_model)
+    res_map = await session.execute(stmt_map)
+    forward_rule = res_map.scalars().first()
+    
     if forward_rule:
         raw_model = forward_rule.target_model
 
     # 2. Standard Logic (alias/model_name)
     if "/" not in raw_model:
         # Fallback: Nếu user chỉ gửi "gpt-4" mà không có alias provider -> Tìm provider đầu tiên phù hợp
-        result = await session.exec(select(Provider))
-        providers = result.all()
         
+        # [FIX] Dùng execute() thay vì exec()
+        result = await session.execute(select(Provider))
+        providers = result.scalars().all() # [FIX] Dùng scalars() để lấy object
+        
+        # Ưu tiên các provider phổ biến
         for p in providers:
             if p.provider_type in ["openrouter", "gemini", "openai"]: 
                 return p, raw_model
@@ -90,7 +102,11 @@ async def parse_model_alias(raw_model: str, session: AsyncSession):
     
     # 3. Parse Alias
     alias, actual = raw_model.split("/", 1)
-    provider = await session.get(Provider, alias)
+    
+    # [FIX] Dùng select theo tên thay vì session.get (trừ khi alias là ID)
+    stmt_provider = select(Provider).where(Provider.name == alias)
+    res_provider = await session.execute(stmt_provider)
+    provider = res_provider.scalars().first()
     
     if not provider: 
         raise HTTPException(404, f"Provider '{alias}' not found")

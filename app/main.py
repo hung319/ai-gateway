@@ -3,7 +3,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles 
 from contextlib import asynccontextmanager
-from sqlmodel import text, select
+from sqlmodel import text
 
 # Import các hàm khởi tạo từ module database async
 from app.database import (
@@ -15,8 +15,6 @@ from app.database import (
 # Import module database để lấy biến redis_client realtime
 import app.database as db_module 
 
-from app.models import GatewayKey
-from app.config import MASTER_TRACKER_ID
 from app.routers import admin, gateway
 from app.engine import ai_engine
 
@@ -24,11 +22,10 @@ from app.engine import ai_engine
 async def lifespan(app: FastAPI):
     # --- STARTUP ---
     
-    # 1. Init DB & Master Key (Hàm này đã xử lý tạo Master Key bên trong)
+    # 1. Init DB & Master Key
     await create_db_and_tables()
     
     # 2. Init AI Engine
-    # Cần tạo một session async tạm thời để load providers vào Router
     async with AsyncSessionLocal() as session:
         await ai_engine.initialize(session)
     
@@ -43,16 +40,15 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan, title="AI Gateway Enterprise")
 
 # --- 0. STATIC FILES ---
-# Mount thư mục static để phục vụ CSS/JS
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
-# --- 1. CẤU HÌNH CORS (BYPASS) ---
+# --- 1. CẤU HÌNH CORS ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],      
+    allow_origins=["*"],       
     allow_credentials=True,
-    allow_methods=["*"],      
-    allow_headers=["*"],      
+    allow_methods=["*"],       
+    allow_headers=["*"],       
 )
 
 # --- 2. HEALTH CHECK ---
@@ -73,7 +69,9 @@ async def health_check():
     # Check Database (Async)
     try:
         async with AsyncSessionLocal() as session:
-            await session.exec(text("SELECT 1"))
+            # [FIX QUAN TRỌNG]: Đổi .exec() thành .execute()
+            await session.execute(text("SELECT 1"))
+            
         status_report["components"]["db"] = "up"
     except Exception as e:
         status_report["components"]["db"] = f"down: {str(e)}"
@@ -109,7 +107,7 @@ async def root():
 @app.get("/panel", response_class=HTMLResponse, include_in_schema=False)
 async def panel():
     try:
-        # Đọc file HTML (Vẫn dùng sync open cho đơn giản vì file nhỏ)
+        # Đọc file HTML
         with open("app/templates/panel.html", "r", encoding="utf-8") as f: 
             return f.read()
     except FileNotFoundError:
