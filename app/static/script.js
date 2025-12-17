@@ -26,7 +26,7 @@ async function api(u, m='GET', d=null) {
 
 // --- 3. DATA LOADING & RENDERING ---
 
-// --- OVERVIEW (UPDATED) ---
+// --- OVERVIEW ---
 async function loadOverview() {
     // 1. Fetch Stats
     const d = await api('/api/admin/stats');
@@ -88,9 +88,10 @@ async function loadOverview() {
             
             const timeStr = req.ts ? new Date(req.ts).toLocaleString('vi-VN') : 'Unknown Time';
             
+            // Pass event to stop propagation
             return `<div class="live-sq ${cls}" 
                         title="${timeStr} - ${req.status}" 
-                        onclick="showReqDetail('${timeStr}', '${req.status}', '${req.status}')">
+                        onclick="showReqDetail(event, '${timeStr}', '${req.status}', '${req.status}')">
                     </div>`;
         }).join('');
         
@@ -101,22 +102,65 @@ async function loadOverview() {
     }
 }
 
-function showReqDetail(time, status, rawStatus) {
-    const t = document.getElementById("toast");
-    let icon = '<i class="fa-solid fa-circle-info"></i>';
-    if(rawStatus === 'success') icon = '<i class="fa-solid fa-check" style="color:var(--success)"></i>';
-    if(rawStatus === 'fail') icon = '<i class="fa-solid fa-triangle-exclamation" style="color:var(--danger)"></i>';
+// REQUEST POPUP LOGIC (No timeout, click outside to close)
+function showReqDetail(e, time, status, rawStatus) {
+    e.stopPropagation(); // Stop click from propagating to window
+    const p = document.getElementById("reqDetailPopup");
     
-    t.innerHTML = `
-        <div style="display:flex; flex-direction:column; align-items:center;">
-            <div style="font-weight:bold; margin-bottom:4px;">${icon} Request Details</div>
-            <div style="font-size:0.8rem;">Time: ${time}</div>
-            <div style="font-size:0.8rem;">Status: ${status.toUpperCase()}</div>
+    let icon = '<i class="fa-solid fa-circle-info"></i>';
+    let colorStyle = '';
+    if(rawStatus === 'success') { icon = '<i class="fa-solid fa-check-circle"></i>'; colorStyle = 'color:var(--success)'; }
+    if(rawStatus === 'fail') { icon = '<i class="fa-solid fa-triangle-exclamation"></i>'; colorStyle = 'color:var(--danger)'; }
+
+    p.innerHTML = `
+        <h4 style="${colorStyle}">${icon} Request Detail</h4>
+        <div style="border-top:1px solid var(--border); margin:10px 0; padding-top:10px;">
+            <p><strong>Time:</strong> ${time}</p>
+            <p><strong>Status:</strong> <span style="font-weight:bold; ${colorStyle}">${status.toUpperCase()}</span></p>
         </div>
+        <p style="font-size:0.75rem; font-style:italic;">(Click outside to close)</p>
     `;
-    t.className = "show";
-    setTimeout(() => t.className = "", 3000);
+    
+    // Reset animation by triggering reflow
+    p.classList.remove("show");
+    void p.offsetWidth;
+    p.classList.add("show");
 }
+
+// GLOBAL CLICK HANDLER
+window.onclick = function(event) {
+    // 1. Close Dropdown
+    if (!event.target.matches('.three-dots-btn')) {
+        document.querySelectorAll('.dropdown-content.show').forEach(d => {
+            d.classList.remove('show');
+            setTimeout(() => d.style.display = 'none', 200);
+        });
+        document.querySelectorAll('.three-dots-btn.active').forEach(b => b.classList.remove('active'));
+    }
+    
+    // 2. Close Modal
+    if (event.target.classList.contains('modal-overlay')) {
+        closeKeyModal();
+    }
+
+    // 3. Close Request Popup (NEW)
+    const reqPopup = document.getElementById("reqDetailPopup");
+    if (reqPopup && reqPopup.classList.contains('show')) {
+        // If click is NOT inside the popup, close it
+        if (!reqPopup.contains(event.target)) {
+            reqPopup.classList.remove("show");
+        }
+    }
+};
+
+window.onscroll = function() {
+    if(document.querySelector('.dropdown-content.show')) {
+        document.querySelectorAll('.dropdown-content.show').forEach(d => {
+            d.classList.remove('show');
+            d.style.display = 'none';
+        });
+    }
+};
 
 // --- Providers ---
 async function loadP() {
@@ -251,27 +295,7 @@ function toggleDropdown(e, id) {
     }
 }
 
-window.onclick = function(event) {
-    if (!event.target.matches('.three-dots-btn')) {
-        document.querySelectorAll('.dropdown-content.show').forEach(d => {
-            d.classList.remove('show');
-            setTimeout(() => d.style.display = 'none', 200);
-        });
-        document.querySelectorAll('.three-dots-btn.active').forEach(b => b.classList.remove('active'));
-    }
-    if (event.target.classList.contains('modal-overlay')) closeKeyModal();
-};
-
-window.onscroll = function() {
-    if(document.querySelector('.dropdown-content.show')) {
-        document.querySelectorAll('.dropdown-content.show').forEach(d => {
-            d.classList.remove('show');
-            d.style.display = 'none';
-        });
-    }
-};
-
-// --- Modal ---
+// --- Modal & Edit ---
 function openKeyModal(keyStr) {
     const k = STATE.k.data.find(item => item.key === keyStr);
     if (!k) return;

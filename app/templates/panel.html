@@ -59,18 +59,17 @@
                 </div>
             </div>
 
-            <div class="grid-2" style="margin-top:20px; align-items: start;">
-                <div class="card">
+            <div class="grid-2" style="margin-top:20px;">
+                <div class="card" style="height: 100%;">
                     <h3><i class="fa-solid fa-chart-pie"></i> Top 10 Models</h3>
-                    <div style="position: relative; height: 300px; display:flex; justify-content:center;">
+                    <div class="fixed-chart-box">
                         <canvas id="topModelChart"></canvas>
                     </div>
                 </div>
 
-                <div class="card">
+                <div class="card" style="height: 100%;">
                     <h3><i class="fa-solid fa-heart-pulse"></i> Live Requests</h3>
-                    <div id="liveGrid" class="live-grid-container">
-                        </div>
+                    <div id="liveGrid" class="fixed-live-box"></div>
                     <div class="legend">
                         <span><span class="sq success"></span> Success</span>
                         <span><span class="sq fail"></span> Fail</span>
@@ -86,10 +85,7 @@
         <div id="v-config" class="hidden">
             <div class="grid-2">
                 <div class="card">
-                    <h3>
-                        <i class="fa-solid fa-server"></i> Providers
-                        <span id="pTotal" class="badge-count">0</span>
-                    </h3>
+                    <h3><i class="fa-solid fa-server"></i> Providers <span id="pTotal" class="badge-count">0</span></h3>
                     <form id="pForm">
                         <div class="grid-2" style="gap:10px; margin-bottom:10px">
                             <div><label>Alias</label><input type="text" id="p_name" placeholder="gpt" required></div>
@@ -106,13 +102,11 @@
                         <label>API Key</label><input type="password" id="p_key" required>
                         <button class="btn btn-primary">Save Provider</button>
                     </form>
-                    
                     <div style="margin-top:25px">
                         <div class="search-box">
                             <i class="fa-solid fa-magnifying-glass"></i>
                             <input type="search" id="pSearch" placeholder="Search provider alias..." oninput="searchP()">
                         </div>
-
                         <div class="table-container">
                             <table>
                                 <thead>
@@ -132,7 +126,6 @@
                         </div>
                     </div>
                 </div>
-
                 <div class="card" style="height:fit-content">
                     <h3><i class="fa-solid fa-key"></i> Client Keys</h3>
                     <form id="kForm">
@@ -146,16 +139,11 @@
 
         <div id="v-models" class="hidden">
             <div class="card">
-                <h3>
-                    <i class="fa-solid fa-cubes"></i> Live Models
-                    <span id="mTotal" class="badge-count">0</span>
-                </h3>
-                
+                <h3><i class="fa-solid fa-cubes"></i> Live Models <span id="mTotal" class="badge-count">0</span></h3>
                 <div class="search-box">
                     <i class="fa-solid fa-magnifying-glass"></i>
                     <input type="search" id="mSearch" placeholder="Search models by alias, real name or full ID..." oninput="searchM()">
                 </div>
-                
                 <div class="table-container">
                     <table>
                         <thead>
@@ -170,7 +158,6 @@
                         </tbody>
                     </table>
                 </div>
-
                 <div id="mPagination" class="pagination hidden">
                     <button class="page-btn" onclick="changePage('m', -1)" id="btnPrev_m"><i class="fa-solid fa-chevron-left"></i></button>
                     <span id="pageInfo_m" class="page-info"></span>
@@ -184,19 +171,12 @@
                 <div class="card" style="height:fit-content">
                     <h3><i class="fa-solid fa-shuffle"></i> Add Forward Rule</h3>
                     <form id="mapForm">
-                        <label>Source Alias</label>
-                        <input type="text" id="map_src" placeholder="e.g. gpt-4" required style="margin-bottom:10px">
-                        
-                        <label>Target Model</label>
-                        <input type="text" id="map_target" placeholder="e.g. openai/gpt-4-turbo" required>
-                        <p style="font-size:0.75rem; color:var(--text-muted); margin-top:5px">
-                            Target must be valid: <code>provider/model_name</code>
-                        </p>
-                        
+                        <label>Source Alias</label><input type="text" id="map_src" placeholder="e.g. gpt-4" required style="margin-bottom:10px">
+                        <label>Target Model</label><input type="text" id="map_target" placeholder="e.g. openai/gpt-4-turbo" required>
+                        <p style="font-size:0.75rem; color:var(--text-muted); margin-top:5px">Target must be valid: <code>provider/model_name</code></p>
                         <button class="btn btn-primary">Create Rule</button>
                     </form>
                 </div>
-
                 <div class="card">
                     <h3>Current Rules <span id="mapTotal" class="badge-count">0</span></h3>
                     <div class="table-container">
@@ -218,16 +198,11 @@
 
         <div id="v-stats" class="hidden">
             <div class="card">
-                <h3>
-                    <i class="fa-solid fa-users"></i> Usage Stats
-                    <span id="kTotal" class="badge-count">0</span>
-                </h3>
-                
+                <h3><i class="fa-solid fa-users"></i> Usage Stats <span id="kTotal" class="badge-count">0</span></h3>
                 <div class="search-box">
                     <i class="fa-solid fa-magnifying-glass"></i>
                     <input type="search" id="kSearch" placeholder="Search by App Name..." oninput="searchK()">
                 </div>
-
                 <div class="table-container" style="min-height: 250px;">
                     <table style="width: 100%; border-collapse: collapse;">
                         <thead>
@@ -237,8 +212,7 @@
                                 <th class="col-action" style="text-align:right; padding:10px;">Actions</th>
                             </tr>
                         </thead>
-                        <tbody id="kList">
-                            </tbody>
+                        <tbody id="kList"></tbody>
                     </table>
                 </div>
                  <div id="kPagination" class="pagination hidden">
@@ -251,21 +225,11 @@
     </div>
 
     <nav class="bottom-nav hidden" id="mainNav">
-        <button class="nav-btn active" onclick="tab('overview')" id="t-overview" title="Overview">
-            <i class="fa-solid fa-chart-line"></i>
-        </button>
-        <button class="nav-btn" onclick="tab('config')" id="t-config" title="Config">
-            <i class="fa-solid fa-sliders"></i>
-        </button>
-        <button class="nav-btn" onclick="tab('models')" id="t-models" title="Models">
-            <i class="fa-solid fa-box-open"></i>
-        </button>
-        <button class="nav-btn" onclick="tab('maps')" id="t-maps" title="Mapping">
-            <i class="fa-solid fa-shuffle"></i>
-        </button>
-        <button class="nav-btn" onclick="tab('stats')" id="t-stats" title="Keys & Usage">
-            <i class="fa-solid fa-key"></i>
-        </button>
+        <button class="nav-btn active" onclick="tab('overview')" id="t-overview" title="Overview"><i class="fa-solid fa-chart-line"></i></button>
+        <button class="nav-btn" onclick="tab('config')" id="t-config" title="Config"><i class="fa-solid fa-sliders"></i></button>
+        <button class="nav-btn" onclick="tab('models')" id="t-models" title="Models"><i class="fa-solid fa-box-open"></i></button>
+        <button class="nav-btn" onclick="tab('maps')" id="t-maps" title="Mapping"><i class="fa-solid fa-shuffle"></i></button>
+        <button class="nav-btn" onclick="tab('stats')" id="t-stats" title="Keys & Usage"><i class="fa-solid fa-key"></i></button>
     </nav>
 
     <div id="keyModal" class="modal-overlay">
@@ -275,15 +239,12 @@
                 <h2 class="modal-title">Key Details</h2>
                 <i class="fa-solid fa-pen-to-square edit-toggle" onclick="enableEditMode()" id="editBtn" title="Edit"></i>
             </div>
-            
             <form id="keyEditForm">
                 <input type="hidden" id="m_key_id">
-                
                 <div class="form-group">
                     <label class="form-label">App Name</label>
                     <input type="text" id="m_name" class="form-input" disabled>
                 </div>
-
                 <div class="grid-2" style="gap:15px">
                     <div class="form-group">
                         <label class="form-label">Rate Limit (RPM)</label>
@@ -296,7 +257,6 @@
                         <p class="form-helper">Current Usage: <span id="m_used" style="font-weight:bold; color:var(--primary)">0</span></p>
                     </div>
                 </div>
-
                 <div id="btnSaveGroup" class="modal-actions hidden">
                     <button type="button" class="btn" style="background:var(--bg-main); border:1px solid var(--border); color:var(--text-main)" onclick="disableEditMode()">Cancel</button>
                     <button type="button" class="btn btn-primary" onclick="saveKeyChanges()">Save Changes</button>
@@ -306,6 +266,8 @@
     </div>
 
     <div id="toast"><i class="fa-solid fa-check"></i> Action Done!</div>
+
+    <div id="reqDetailPopup" class="req-popup"></div>
 
     <script src="/static/script.js?v={{ ver }}"></script>
 </body>
