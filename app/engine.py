@@ -14,6 +14,7 @@ logger = logging.getLogger("app.engine")
 class AIEngine:
     def __init__(self):
         self.router: Optional[Router] = None
+        self.active_model_count: int = 0  # <--- THÊM BIẾN NÀY
         
     async def initialize(self, session: AsyncSession):
         logger.info("🔄 [Engine] Initializing...")
@@ -22,10 +23,9 @@ class AIEngine:
         setup_observability()
 
         # 2. Load Providers -> Router (Async DB Call)
-        # SỬA LỖI Ở ĐÂY: Dùng .execute() thay vì .exec()
         try:
             result = await session.execute(select(Provider))
-            providers = result.scalars().all() # .scalars() giúp lấy ra object Provider thực sự
+            providers = result.scalars().all()
         except Exception as e:
             logger.error(f"⚠️ [Engine] Database error: {e}")
             providers = []
@@ -39,7 +39,6 @@ class AIEngine:
             elif p.provider_type == "azure":
                 real_model = f"azure/{p.name}"
             else:
-                # OpenRouter / Gemini / Others
                 real_model = f"{p.provider_type}/{p.name}"
 
             deployment = {
@@ -55,6 +54,9 @@ class AIEngine:
             
             model_list.append(deployment)
 
+        # CẬP NHẬT SỐ LƯỢNG MODEL
+        self.active_model_count = len(model_list)
+
         # 3. Init Router
         if not model_list:
             logger.warning("⚠️ [Engine] No providers found. Router empty.")
@@ -63,7 +65,7 @@ class AIEngine:
 
         router_config = {
             "model_list": model_list,
-            "set_verbose": False # Tắt verbose log để đỡ rác console
+            "set_verbose": False
         }
         
         if REDIS_URL and ENABLE_CACHE:
@@ -72,7 +74,6 @@ class AIEngine:
             logger.info("✅ [Engine] Semantic Caching Enabled")
 
         try:
-            # Router khởi tạo là Sync (CPU bound setup), không cần await
             self.router = Router(**router_config)
             logger.info(f"🚀 [Engine] Router Ready with {len(model_list)} providers")
         except Exception as e:

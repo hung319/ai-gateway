@@ -4,10 +4,11 @@
     --text-main: #1f2937; --text-muted: #6b7280;
     --border: #e5e7eb;
     --primary: #3b82f6; --primary-hover: #2563eb;
-    --danger: #ef4444; --success: #10b981;
+    --danger: #ef4444; --success: #10b981; --warning: #f59e0b;
     --input-bg: #f9fafb; --code-bg: #f1f5f9;
     --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     --modal-overlay: rgba(0,0,0,0.6);
+    --nav-height: 60px;
 }
 
 html.dark {
@@ -20,11 +21,20 @@ html.dark {
     --modal-overlay: rgba(0,0,0,0.85);
 }
 
-body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg-body); color: var(--text-main); margin: 0; padding: 15px; transition: 0.3s; font-size: 14px; }
+body { 
+    font-family: 'Segoe UI', system-ui, sans-serif; 
+    background: var(--bg-body); 
+    color: var(--text-main); 
+    margin: 0; 
+    padding: 15px; 
+    padding-bottom: calc(var(--nav-height) + 20px); /* Space for bottom nav */
+    transition: 0.3s; 
+    font-size: 14px; 
+}
 * { box-sizing: border-box; }
 .hidden { display: none !important; }
 
-.container { max-width: 1200px; margin: 0 auto; padding-bottom: 80px; }
+.container { max-width: 1200px; margin: 0 auto; }
 
 /* --- 2. LAYOUT COMPONENTS --- */
 /* Header */
@@ -32,14 +42,77 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg-body
 .brand { font-size: 1.4rem; font-weight: 800; color: var(--primary); display: flex; align-items: center; gap: 10px; }
 .action-btn { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-main); padding: 8px; border-radius: 8px; cursor: pointer; margin-left: 5px; }
 
-/* Tabs */
-.tabs { display: flex; gap: 5px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 5px; justify-content: center; }
-.tab-btn { 
-    background: transparent; border: none; font-size: 0.95rem; font-weight: 600; color: var(--text-muted); 
-    padding: 8px 15px; cursor: pointer; border-radius: 20px; white-space: nowrap; transition: 0.2s;
+/* Bottom Navigation */
+.bottom-nav {
+    position: fixed; bottom: 0; left: 0; width: 100%; height: var(--nav-height);
+    background: var(--bg-card); border-top: 1px solid var(--border);
+    display: flex; justify-content: space-around; align-items: center;
+    z-index: 100; box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
 }
-.tab-btn:hover { background: var(--bg-card); color: var(--primary); }
-.tab-btn.active { background: var(--bg-card); color: var(--primary); border: 1px solid var(--border); box-shadow: var(--shadow); }
+.nav-btn {
+    background: transparent; border: none; color: var(--text-muted);
+    font-size: 1.2rem; cursor: pointer; padding: 10px 20px;
+    border-radius: 12px; transition: all 0.2s; position: relative;
+}
+.nav-btn:hover { color: var(--primary); background: var(--input-bg); }
+.nav-btn.active { color: var(--primary); background: rgba(59, 130, 246, 0.1); }
+.nav-btn.active::after {
+    content: ''; position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%);
+    width: 4px; height: 4px; background: var(--primary); border-radius: 50%;
+}
+
+/* OVERVIEW STATS */
+.stats-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; margin-bottom: 20px;
+}
+.stat-card {
+    background: var(--bg-card); padding: 15px; border-radius: 12px;
+    border: 1px solid var(--border); text-align: center; box-shadow: var(--shadow);
+}
+.stat-val { font-size: 1.8rem; font-weight: 800; color: var(--text-main); margin-bottom: 5px; }
+.stat-label { font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; }
+
+/* LIVE REQUEST GRID */
+.live-grid-container {
+    display: flex; 
+    flex-wrap: wrap; 
+    gap: 4px;
+    padding: 10px; 
+    background: var(--input-bg); 
+    border-radius: 8px; 
+    border: 1px solid var(--border);
+    /* Approx 5 lines height */
+    max-height: 90px; 
+    overflow-y: auto; 
+    align-content: flex-start;
+}
+.live-grid-container::-webkit-scrollbar { width: 4px; }
+.live-grid-container::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.live-sq {
+    width: 12px; height: 12px; border-radius: 2px; flex-shrink: 0;
+    cursor: pointer; transition: all 0.1s;
+}
+.live-sq:hover { 
+    transform: scale(1.4); border: 1px solid var(--text-main); 
+    box-shadow: 0 0 5px rgba(0,0,0,0.2); 
+}
+.bg-success { background-color: var(--success); }
+.bg-fail { background-color: var(--danger); }
+.bg-process { background-color: var(--warning); }
+
+.legend { display: flex; gap: 15px; margin-top: 10px; font-size: 0.8rem; color: var(--text-muted); justify-content: flex-end; }
+.sq { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; }
+.sq.success { background: var(--success); }
+.sq.fail { background: var(--danger); }
+.sq.process { background: var(--warning); }
+
+/* Animation */
+.tab-content { animation: slideUpFade 0.3s ease-out; }
+@keyframes slideUpFade {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
 
 /* Cards */
 .card { background: var(--bg-card); border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid var(--border); box-shadow: var(--shadow); }
@@ -107,10 +180,7 @@ tr:hover { background-color: var(--input-bg); }
 .clickable-badge:hover { background: var(--primary); color: white; border-color: var(--primary); }
 
 /* --- 4. DROPDOWN (FIXED & ANIMATED) --- */
-.action-menu { 
-    /* Static container for button */
-}
-
+.action-menu { }
 .three-dots-btn { 
     cursor: pointer; padding: 5px 10px; background: none; border: none; 
     font-size: 1.2rem; color: var(--text-main); transition: color 0.2s, transform 0.2s; 
@@ -119,28 +189,13 @@ tr:hover { background-color: var(--input-bg); }
 .three-dots-btn.active { color: var(--primary); }
 
 .dropdown-content {
-    display: none; 
-    position: fixed; /* Fixed position để thoát khỏi overflow:hidden của table */
-    z-index: 9999; 
-    background-color: var(--bg-card);
-    min-width: 160px; 
-    box-shadow: 0px 5px 15px rgba(0,0,0,0.2); 
-    border-radius: 8px; 
-    border: 1px solid var(--border); 
-    overflow: hidden;
-    
-    /* Animation Start State */
-    opacity: 0;
-    transform: translateY(-10px) scale(0.95);
+    display: none; position: fixed; z-index: 9999; background-color: var(--bg-card);
+    min-width: 160px; box-shadow: 0px 5px 15px rgba(0,0,0,0.2); 
+    border-radius: 8px; border: 1px solid var(--border); overflow: hidden;
+    opacity: 0; transform: translateY(-10px) scale(0.95);
     transition: opacity 0.2s ease, transform 0.2s ease;
 }
-
-.dropdown-content.show { 
-    display: block; 
-    opacity: 1;
-    transform: translateY(0) scale(1);
-}
-
+.dropdown-content.show { display: block; opacity: 1; transform: translateY(0) scale(1); }
 .dropdown-content a { 
     color: var(--text-main); padding: 12px 16px; text-decoration: none; 
     display: block; cursor: pointer; font-size: 0.9rem; transition: background 0.2s; 
@@ -167,35 +222,19 @@ tr:hover { background-color: var(--input-bg); }
 .form-helper { font-size: 0.8rem; color: var(--text-muted); margin-top: 5px; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 25px; }
 
-/* Login Modal Specific */
+/* Login Modal */
 .modal { position: fixed; inset: 0; background: var(--modal-overlay); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 999; }
 .modal-box { background: var(--bg-card); padding: 30px; width: 90%; max-width: 350px; border-radius: 16px; text-align: center; border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
 
-/* --- 6. ANIMATIONS & EFFECTS --- */
-/* Tab Slide Up */
-.tab-content { animation: slideUpFade 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
-@keyframes slideUpFade {
-    from { opacity: 0; transform: translateY(15px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-/* Modal Zoom In */
+/* Effects */
 .modal-content { animation: zoomIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-@keyframes zoomIn {
-    from { opacity: 0; transform: scale(0.9); }
-    to { opacity: 1; transform: scale(1); }
-}
-
-/* Float Up Login */
+@keyframes zoomIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
 .modal-box { animation: floatUp 0.5s ease-out; }
-@keyframes floatUp {
-    from { opacity: 0; transform: translateY(30px); }
-    to { opacity: 1; transform: translateY(0); }
-}
+@keyframes floatUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
 
 /* Toast */
-#toast { visibility: hidden; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1f2937; color: white; padding: 8px 16px; border-radius: 30px; font-size:0.9rem; z-index: 1000; opacity: 0; transition: all 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
-#toast.show { visibility: visible; opacity: 1; bottom: 50px; transform: translateX(-50%) scale(1); }
+#toast { visibility: hidden; position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: #1f2937; color: white; padding: 8px 16px; border-radius: 8px; font-size:0.9rem; z-index: 1000; opacity: 0; transition: all 0.3s; box-shadow: 0 5px 15px rgba(0,0,0,0.3); text-align: center; }
+#toast.show { visibility: visible; opacity: 1; bottom: 100px; transform: translateX(-50%) scale(1); }
 
 /* Pagination */
 .pagination { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 20px; }
@@ -214,7 +253,7 @@ tr:hover { background-color: var(--input-bg); }
 
 /* Mobile */
 @media (max-width: 768px) {
-    body { padding: 10px; }
+    body { padding: 10px; padding-bottom: 80px; }
     .grid-2 { grid-template-columns: 1fr; gap: 10px; }
     th, td { padding: 10px 6px; font-size: 0.85rem; }
     .col-name { width: 30%; font-weight: bold; } .col-key { width: 40%; } .col-action { width: 30%; text-align: right; }

@@ -5,7 +5,8 @@ const STATE = {
     p: { data: [], filtered: [], page: 1, size: 10 },        // Providers
     k: { data: [], filtered: [], page: 1, size: 20 },        // Keys
     m: { data: [], filtered: [], page: 1, size: 20 },        // Models
-    map: { data: [] }                                        // Forwarding Maps
+    map: { data: [] },                                       // Forwarding Maps
+    chart: null // Chart instance
 };
 
 // --- 2. API & AUTH LOGIC ---
@@ -24,6 +25,98 @@ async function api(u, m='GET', d=null) {
 }
 
 // --- 3. DATA LOADING & RENDERING ---
+
+// --- OVERVIEW (UPDATED) ---
+async function loadOverview() {
+    // 1. Fetch Stats
+    const d = await api('/api/admin/stats');
+    if(!d) return;
+    
+    // 2. Fetch Keys count if empty (to get Total API Keys)
+    if(STATE.k.data.length === 0) await loadK();
+    document.getElementById('ov_keys').innerText = STATE.k.data.length;
+
+    // 3. Fill Basic Stats (Order: Provider, Model, Key, Map, Request, Processing)
+    document.getElementById('ov_providers').innerText = d.overview.total_provider;
+    document.getElementById('ov_models').innerText = d.overview.total_models;
+    document.getElementById('ov_maps').innerText = d.overview.total_mapping;
+    document.getElementById('ov_requests').innerText = d.overview.total_request;
+    document.getElementById('ov_processing').innerText = d.overview.request_now;
+
+    // 4. Chart.js (Doughnut - Top 10)
+    const ctx = document.getElementById('topModelChart').getContext('2d');
+    if(STATE.chart) STATE.chart.destroy();
+    
+    const isDark = document.documentElement.classList.contains('dark');
+    const txtColor = isDark ? '#94a3b8' : '#6b7280';
+    const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#6366f1', '#14b8a6', '#f97316', '#64748b'];
+
+    STATE.chart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: d.chart_top_models.labels,
+            datasets: [{
+                data: d.chart_top_models.data,
+                backgroundColor: colors,
+                borderWidth: 0,
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '65%',
+            plugins: { 
+                legend: { 
+                    position: 'right', 
+                    labels: { color: txtColor, boxWidth: 10, font: {size: 11} } 
+                } 
+            }
+        }
+    });
+
+    // 5. Live Request Grid (Sorted Old -> New)
+    const grid = document.getElementById('liveGrid');
+    if(d.live_requests && d.live_requests.length > 0) {
+        // Reverse to show Oldest first (Left/Top) -> Newest (Right/Bottom)
+        const sortedReqs = [...d.live_requests].reverse();
+        
+        grid.innerHTML = sortedReqs.map(req => {
+            let cls = 'bg-process';
+            if(req.status === 'success') cls = 'bg-success';
+            if(req.status === 'fail') cls = 'bg-fail';
+            
+            const timeStr = req.ts ? new Date(req.ts).toLocaleString('vi-VN') : 'Unknown Time';
+            
+            return `<div class="live-sq ${cls}" 
+                        title="${timeStr} - ${req.status}" 
+                        onclick="showReqDetail('${timeStr}', '${req.status}', '${req.status}')">
+                    </div>`;
+        }).join('');
+        
+        // Auto scroll to bottom to show newest
+        setTimeout(() => { grid.scrollTop = grid.scrollHeight; }, 50);
+    } else {
+        grid.innerHTML = '<span style="color:var(--text-muted); font-size:0.8rem; padding:10px">No recent activity</span>';
+    }
+}
+
+function showReqDetail(time, status, rawStatus) {
+    const t = document.getElementById("toast");
+    let icon = '<i class="fa-solid fa-circle-info"></i>';
+    if(rawStatus === 'success') icon = '<i class="fa-solid fa-check" style="color:var(--success)"></i>';
+    if(rawStatus === 'fail') icon = '<i class="fa-solid fa-triangle-exclamation" style="color:var(--danger)"></i>';
+    
+    t.innerHTML = `
+        <div style="display:flex; flex-direction:column; align-items:center;">
+            <div style="font-weight:bold; margin-bottom:4px;">${icon} Request Details</div>
+            <div style="font-size:0.8rem;">Time: ${time}</div>
+            <div style="font-size:0.8rem;">Status: ${status.toUpperCase()}</div>
+        </div>
+    `;
+    t.className = "show";
+    setTimeout(() => t.className = "", 3000);
+}
 
 // --- Providers ---
 async function loadP() {
@@ -69,7 +162,7 @@ function renderP() {
     updatePagination('p', filtered.length);
 }
 
-// --- Keys / Stats (UPDATED FOR DROPDOWN) ---
+// --- Keys ---
 async function loadK() {
     const d = await api('/api/admin/keys');
     if(d) {
@@ -104,7 +197,6 @@ function renderK() {
             ? `<span style="color:#d97706; background:#fffbeb; padding:4px 8px; border-radius:4px; font-size:0.7rem; border:1px solid #fcd34d;">MASTER</span>`
             : `<span class="copy-box" onclick="copyTxt('${k.key}')" oncontextmenu="return false;" title="${k.key}">${k.key} <i class="fa-regular fa-copy"></i></span>`;
         
-        // ACTION BUTTON: Calls toggleDropdown(event, id)
         const actionHtml = `
             <div class="action-menu">
                 <button onclick="toggleDropdown(event, '${k.key}')" class="three-dots-btn" id="btn-${k.key}">⋮</button>
@@ -124,13 +216,12 @@ function renderK() {
     updatePagination('k', filtered.length);
 }
 
-// --- NEW DROPDOWN LOGIC (FIX CLIP & POSITION) ---
+// --- Dropdown ---
 function toggleDropdown(e, id) {
     e.stopPropagation();
     const menu = document.getElementById(`dd-${id}`);
     const btn = document.getElementById(`btn-${id}`);
     
-    // Đóng các menu khác
     document.querySelectorAll('.dropdown-content').forEach(d => {
         if (d.id !== `dd-${id}`) {
             d.classList.remove('show');
@@ -145,31 +236,21 @@ function toggleDropdown(e, id) {
         setTimeout(() => menu.style.display = 'none', 200);
         btn.classList.remove('active');
     } else {
-        // Tính toán vị trí Fixed
         menu.style.display = 'block';
         const rect = btn.getBoundingClientRect();
         const menuWidth = 160; 
         
         let top = rect.bottom + 5;
         let left = rect.left - menuWidth + rect.width;
-
-        // Nếu sát đáy màn hình -> Đẩy lên trên
-        if (top + 100 > window.innerHeight) {
-            top = rect.top - 100;
-        }
+        if (top + 100 > window.innerHeight) top = rect.top - 100;
 
         menu.style.top = `${top}px`;
         menu.style.left = `${left}px`;
-        
-        // Trigger animation
-        requestAnimationFrame(() => {
-            menu.classList.add('show');
-        });
+        requestAnimationFrame(() => { menu.classList.add('show'); });
         btn.classList.add('active');
     }
 }
 
-// Global click/scroll listeners
 window.onclick = function(event) {
     if (!event.target.matches('.three-dots-btn')) {
         document.querySelectorAll('.dropdown-content.show').forEach(d => {
@@ -178,9 +259,7 @@ window.onclick = function(event) {
         });
         document.querySelectorAll('.three-dots-btn.active').forEach(b => b.classList.remove('active'));
     }
-    if (event.target.classList.contains('modal-overlay')) {
-        closeKeyModal();
-    }
+    if (event.target.classList.contains('modal-overlay')) closeKeyModal();
 };
 
 window.onscroll = function() {
@@ -192,24 +271,20 @@ window.onscroll = function() {
     }
 };
 
-// --- MODAL LOGIC ---
+// --- Modal ---
 function openKeyModal(keyStr) {
     const k = STATE.k.data.find(item => item.key === keyStr);
     if (!k) return;
-
     document.getElementById('m_key_id').value = k.key;
     document.getElementById('m_name').value = k.name;
     document.getElementById('m_rate').value = k.rate_limit || '';
     document.getElementById('m_quota').value = k.usage_limit || '';
     document.getElementById('m_used').innerText = k.usage_count;
-
     disableEditMode();
     document.getElementById('keyModal').style.display = 'block';
 }
 
-function closeKeyModal() {
-    document.getElementById('keyModal').style.display = 'none';
-}
+function closeKeyModal() { document.getElementById('keyModal').style.display = 'none'; }
 
 function enableEditMode() {
     document.getElementById('m_name').disabled = false;
@@ -243,7 +318,7 @@ async function saveKeyChanges() {
         t.innerHTML = '<i class="fa-solid fa-check"></i> Updated!'; t.className="show"; 
         setTimeout(()=>t.className="", 2000);
     } else {
-        alert("Update failed. Ensure Backend has PUT /api/admin/keys/:key");
+        alert("Update failed.");
     }
 }
 
@@ -276,7 +351,6 @@ function renderM() {
         updatePagination('m', 0);
         return;
     }
-
     const view = filtered.slice((page - 1) * size, page * size);
     document.getElementById('mList').innerHTML = view.map(m => {
         const parts = m.id.split('/');
@@ -292,7 +366,7 @@ function renderM() {
     updatePagination('m', filtered.length);
 }
 
-// --- MAPS ---
+// --- Maps ---
 async function loadMap() {
     const d = await api('/api/admin/maps');
     if(d) {
@@ -321,18 +395,14 @@ function renderMap() {
 }
 
 async function delMap(src) {
-    if(confirm(`Delete rule for '${src}'?`)) {
-        await api(`/api/admin/maps/${src}`, 'DELETE');
-        loadMap();
-    }
+    if(confirm(`Delete rule for '${src}'?`)) { await api(`/api/admin/maps/${src}`, 'DELETE'); loadMap(); }
 }
 
-// --- 4. SHARED UTILS (TABS, PAGINATION, COPY) ---
+// --- Utils ---
 function updatePagination(type, totalItems) {
     const s = STATE[type];
     const totalPages = Math.ceil(totalItems / s.size);
     const el = document.getElementById(`${type}Pagination`);
-    
     if(totalItems > s.size) {
         el.classList.remove('hidden');
         document.getElementById(`pageInfo_${type}`).innerText = `Page ${s.page} / ${totalPages}`;
@@ -363,24 +433,20 @@ function fillUrl() {
 }
 
 function tab(t) {
-    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(`t-${t}`).classList.add('active');
     
-    // Hide all
-    ['v-config','v-stats','v-models','v-maps'].forEach(id => {
+    ['v-overview', 'v-config','v-stats','v-models','v-maps'].forEach(id => {
         const el = document.getElementById(id);
-        el.classList.add('hidden');
-        el.classList.remove('tab-content'); // Reset animation
+        if(el) { el.classList.add('hidden'); el.classList.remove('tab-content'); }
     });
 
-    // Show selected
-    document.getElementById(`t-${t}`).classList.add('active');
     const target = document.getElementById(`v-${t}`);
     target.classList.remove('hidden');
-    
-    // Trigger Reflow for Animation
     void target.offsetWidth; 
     target.classList.add('tab-content');
     
+    if(t==='overview') loadOverview();
     if(t==='config') loadP(); 
     if(t==='stats') loadK(); 
     if(t==='models') loadM();
@@ -397,18 +463,30 @@ function copyTxt(txt) {
     document.body.removeChild(ta);
 }
 
-// --- 5. INITIALIZATION ---
+// --- Init ---
 document.getElementById('loginForm').onsubmit = async(e)=>{
     e.preventDefault();
     const k = document.getElementById('mk').value;
     const res = await fetch('/api/auth/login', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({master_key:k})});
-    if(res.ok) { document.getElementById('loginModal').classList.add('hidden'); document.getElementById('app').classList.remove('hidden'); loadP(); }
+    if(res.ok) { 
+        document.getElementById('loginModal').classList.add('hidden'); 
+        document.getElementById('app').classList.remove('hidden'); 
+        document.getElementById('mainNav').classList.remove('hidden');
+        loadOverview();
+    }
     else { document.getElementById('loginMsg').style.display='block'; }
 };
+
 async function logout() { await fetch('/api/auth/logout', {method:'POST'}); location.reload(); }
+
 async function check() { 
     const d=await api('/api/admin/providers'); 
-    if(d){ document.getElementById('loginModal').classList.add('hidden'); document.getElementById('app').classList.remove('hidden'); loadP(); } 
+    if(d){ 
+        document.getElementById('loginModal').classList.add('hidden'); 
+        document.getElementById('app').classList.remove('hidden'); 
+        document.getElementById('mainNav').classList.remove('hidden');
+        loadOverview();
+    } 
     else { document.getElementById('loginModal').classList.remove('hidden'); } 
 }
 

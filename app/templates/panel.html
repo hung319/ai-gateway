@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>AI Gateway Admin</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="/static/style.css?v={{ ver }}">
 </head>
 <body>
 
@@ -30,14 +31,59 @@
             </div>
         </header>
 
-        <div class="tabs">
-            <button class="tab-btn active" onclick="tab('config')" id="t-config">Config</button>
-            <button class="tab-btn" onclick="tab('models')" id="t-models">Models</button>
-            <button class="tab-btn" onclick="tab('stats')" id="t-stats">Stats</button>
-            <button class="tab-btn" onclick="tab('maps')" id="t-maps">Forwarding</button>
+        <div id="v-overview">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-val" id="ov_providers">0</div>
+                    <div class="stat-label">Providers</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-val" id="ov_models">0</div>
+                    <div class="stat-label">Models</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-val" id="ov_keys">0</div>
+                    <div class="stat-label">Total API Keys</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-val" id="ov_maps">0</div>
+                    <div class="stat-label">Mappings</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-val" id="ov_requests">0</div>
+                    <div class="stat-label">Total Requests</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-val" id="ov_processing">0</div>
+                    <div class="stat-label" style="color:var(--warning)">Processing</div>
+                </div>
+            </div>
+
+            <div class="grid-2" style="margin-top:20px; align-items: start;">
+                <div class="card">
+                    <h3><i class="fa-solid fa-chart-pie"></i> Top 10 Models</h3>
+                    <div style="position: relative; height: 300px; display:flex; justify-content:center;">
+                        <canvas id="topModelChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3><i class="fa-solid fa-heart-pulse"></i> Live Requests</h3>
+                    <div id="liveGrid" class="live-grid-container">
+                        </div>
+                    <div class="legend">
+                        <span><span class="sq success"></span> Success</span>
+                        <span><span class="sq fail"></span> Fail</span>
+                        <span><span class="sq process"></span> Process</span>
+                    </div>
+                    <p style="font-size:0.75rem; color:var(--text-muted); margin-top:10px; font-style:italic;">
+                        * Click squares to view details. Order: Old (Left) &rarr; New (Right).
+                    </p>
+                </div>
+            </div>
         </div>
 
-        <div id="v-config">
+        <div id="v-config" class="hidden">
             <div class="grid-2">
                 <div class="card">
                     <h3>
@@ -138,10 +184,10 @@
                 <div class="card" style="height:fit-content">
                     <h3><i class="fa-solid fa-shuffle"></i> Add Forward Rule</h3>
                     <form id="mapForm">
-                        <label>Source Alias (Client requests this)</label>
+                        <label>Source Alias</label>
                         <input type="text" id="map_src" placeholder="e.g. gpt-4" required style="margin-bottom:10px">
                         
-                        <label>Target Model (We use this)</label>
+                        <label>Target Model</label>
                         <input type="text" id="map_target" placeholder="e.g. openai/gpt-4-turbo" required>
                         <p style="font-size:0.75rem; color:var(--text-muted); margin-top:5px">
                             Target must be valid: <code>provider/model_name</code>
@@ -204,6 +250,24 @@
         </div>
     </div>
 
+    <nav class="bottom-nav hidden" id="mainNav">
+        <button class="nav-btn active" onclick="tab('overview')" id="t-overview" title="Overview">
+            <i class="fa-solid fa-chart-line"></i>
+        </button>
+        <button class="nav-btn" onclick="tab('config')" id="t-config" title="Config">
+            <i class="fa-solid fa-sliders"></i>
+        </button>
+        <button class="nav-btn" onclick="tab('models')" id="t-models" title="Models">
+            <i class="fa-solid fa-box-open"></i>
+        </button>
+        <button class="nav-btn" onclick="tab('maps')" id="t-maps" title="Mapping">
+            <i class="fa-solid fa-shuffle"></i>
+        </button>
+        <button class="nav-btn" onclick="tab('stats')" id="t-stats" title="Keys & Usage">
+            <i class="fa-solid fa-key"></i>
+        </button>
+    </nav>
+
     <div id="keyModal" class="modal-overlay">
         <div class="modal-content">
             <span class="close-modal" onclick="closeKeyModal()">&times;</span>
@@ -241,8 +305,8 @@
         </div>
     </div>
 
-    <div id="toast"><i class="fa-solid fa-check"></i> URL Copied!</div>
+    <div id="toast"><i class="fa-solid fa-check"></i> Action Done!</div>
 
-    <script src="/static/script.js"></script>
+    <script src="/static/script.js?v={{ ver }}"></script>
 </body>
 </html>

@@ -16,9 +16,7 @@ class GatewayKey(SQLModel, table=True):
     is_hidden: bool = Field(default=False)
     
     # --- New Fields for Limits ---
-    # Rate Limit: Requests Per Minute (RPM). None = Unlimited.
     rate_limit: Optional[int] = Field(default=None, nullable=True)
-    # Usage Limit: Tổng số request tối đa được phép (Quota). None = Unlimited.
     usage_limit: Optional[int] = Field(default=None, nullable=True)
 
 class AdminSession(SQLModel, table=True):
@@ -29,3 +27,13 @@ class AdminSession(SQLModel, table=True):
 class ModelMap(SQLModel, table=True):
     source_model: str = Field(primary_key=True, index=True) # VD: gpt-4
     target_model: str # VD: openai/gpt-4-turbo
+
+# --- NEW: Bảng lưu log để thống kê Dashboard ---
+class RequestLog(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    timestamp: float = Field(default_factory=lambda: time.time(), index=True)
+    status: str = Field(index=True) # "success", "fail", "processing"
+    model: str = Field(index=True)
+    provider_name: Optional[str] = None
+    latency: float = 0.0
+    key_name: Optional[str] = None
