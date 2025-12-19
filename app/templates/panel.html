@@ -16,31 +16,31 @@
     </head>
     <body>
         <div id="loginModal" class="hidden">
-    <div class="login-card">
-        <div class="login-icon">
-            <i class="fa-solid fa-shield-cat"></i>
+            <div class="login-card">
+                <div class="login-icon">
+                    <i class="fa-solid fa-shield-cat"></i>
+                </div>
+                <h2 class="login-title">Admin Access</h2>
+                
+                <form id="loginForm">
+                    <input
+                        type="password"
+                        id="mk"
+                        class="login-input"
+                        placeholder="Enter Master Key"
+                        required
+                        autocomplete="off"
+                    />
+                    <button class="btn btn-primary" style="padding: 15px; font-size: 1rem;">
+                        Unlock Panel <i class="fa-solid fa-arrow-right" style="margin-left: 5px"></i>
+                    </button>
+                </form>
+                
+                <p id="loginMsg" style="color: var(--danger); margin-top: 15px; font-weight: 600; display: none;">
+                    <i class="fa-solid fa-circle-exclamation"></i> Incorrect Key!
+                </p>
+            </div>
         </div>
-        <h2 class="login-title">Admin Access</h2>
-        
-        <form id="loginForm">
-            <input
-                type="password"
-                id="mk"
-                class="login-input"
-                placeholder="Enter Master Key"
-                required
-                autocomplete="off"
-            />
-            <button class="btn btn-primary" style="padding: 15px; font-size: 1rem;">
-                Login <i class="fa-solid fa-arrow-right" style="margin-left: 5px"></i>
-            </button>
-        </form>
-        
-        <p id="loginMsg" style="color: var(--danger); margin-top: 15px; font-weight: 600; display: none;">
-            <i class="fa-solid fa-circle-exclamation"></i> Incorrect Key!
-        </p>
-    </div>
-</div>
 
         <div id="app" class="container hidden">
             <header class="header">
@@ -161,19 +161,12 @@
                             </table>
                         </div>
                         <div id="pPagination" class="pagination hidden">
-                            <button
-                                class="page-btn"
-                                onclick="changePage('p', -1)"
-                                id="btnPrev_p"
-                            >
-                                <i class="fa-solid fa-chevron-left"></i></button
-                            ><span id="pageInfo_p" class="page-info"></span
-                            ><button
-                                class="page-btn"
-                                onclick="changePage('p', 1)"
-                                id="btnNext_p"
-                            >
-                                <i class="fa-solid fa-chevron-right"></i>
+                            <button id="btnPrev_p" class="page-btn" onclick="changePage('p', -1)">
+                                <i class="fa-solid fa-chevron-left"></i> Prev
+                            </button>
+                            <span id="pageInfo_p" class="page-info">Page 1 / 1</span>
+                            <button id="btnNext_p" class="page-btn" onclick="changePage('p', 1)">
+                                Next <i class="fa-solid fa-chevron-right"></i>
                             </button>
                         </div>
                     </div>
@@ -239,19 +232,12 @@
                         </table>
                     </div>
                     <div id="mPagination" class="pagination hidden">
-                        <button
-                            class="page-btn"
-                            onclick="changePage('m', -1)"
-                            id="btnPrev_m"
-                        >
-                            <i class="fa-solid fa-chevron-left"></i></button
-                        ><span id="pageInfo_m" class="page-info"></span
-                        ><button
-                            class="page-btn"
-                            onclick="changePage('m', 1)"
-                            id="btnNext_m"
-                        >
-                            <i class="fa-solid fa-chevron-right"></i>
+                        <button id="btnPrev_m" class="page-btn" onclick="changePage('m', -1)">
+                            <i class="fa-solid fa-chevron-left"></i> Prev
+                        </button>
+                        <span id="pageInfo_m" class="page-info">Page 1 / 1</span>
+                        <button id="btnNext_m" class="page-btn" onclick="changePage('m', 1)">
+                            Next <i class="fa-solid fa-chevron-right"></i>
                         </button>
                     </div>
                 </div>
@@ -329,19 +315,12 @@
                         </table>
                     </div>
                     <div id="kPagination" class="pagination hidden">
-                        <button
-                            class="page-btn"
-                            onclick="changePage('k', -1)"
-                            id="btnPrev_k"
-                        >
-                            <i class="fa-solid fa-chevron-left"></i></button
-                        ><span id="pageInfo_k" class="page-info"></span
-                        ><button
-                            class="page-btn"
-                            onclick="changePage('k', 1)"
-                            id="btnNext_k"
-                        >
-                            <i class="fa-solid fa-chevron-right"></i>
+                        <button id="btnPrev_k" class="page-btn" onclick="changePage('k', -1)">
+                            <i class="fa-solid fa-chevron-left"></i> Prev
+                        </button>
+                        <span id="pageInfo_k" class="page-info">Page 1 / 1</span>
+                        <button id="btnNext_k" class="page-btn" onclick="changePage('k', 1)">
+                            Next <i class="fa-solid fa-chevron-right"></i>
                         </button>
                     </div>
                 </div>
@@ -424,24 +403,25 @@
                             </select>
                         </div>
                         <div class="form-group">
-    <label>Base URL</label>
-    <div class="input-group">
-        <input 
-            type="text" 
-            id="pm_base" 
-            placeholder="https://..." 
-        />
-        <button 
-            type="button" 
-            class="btn-danger-ghost" 
-            onclick="document.getElementById('pm_base').value = ''"
-            title="Clear URL"
-            style="padding: 10px 15px; border-radius: 8px; height: 42px;"
-        >
-            <i class="fa-solid fa-eraser"></i>
-        </button>
-    </div>
-</div>
+                            <label>Base URL</label>
+                            <div class="input-group">
+                                <input 
+                                    type="text" 
+                                    id="pm_base" 
+                                    placeholder="https://..." 
+                                />
+                                <button 
+                                    type="button" 
+                                    class="btn-danger-ghost" 
+                                    onclick="document.getElementById('pm_base').value = ''"
+                                    title="Clear URL"
+                                    style="padding: 10px 15px; border-radius: 8px; height: 42px;"
+                                >
+                                    <i class="fa-solid fa-eraser"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
 
                     <div class="form-group" style="margin-top: 15px">
                         <div class="switch-row">
