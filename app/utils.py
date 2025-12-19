@@ -3,15 +3,14 @@ import json
 import asyncio
 from sqlmodel import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import HTTPException
-from app.models import Provider, ModelMap
+from app.models import Provider, ModelGroup # <-- Thay ModelMap bằng ModelGroup
 from app.config import MODEL_FETCH_TIMEOUT, CACHE_TTL
-# Import Redis client để lưu cache tại đây luôn
 from app.database import redis_client
 
 async def fetch_provider_models(client: httpx.AsyncClient, provider: Provider):
     """
     Fetch list models từ Provider API (Async).
+    Giữ nguyên logic cũ vì code này vẫn dùng để lấy raw models từ OpenAI/Gemini...
     """
     fetched_ids = []
     
@@ -60,55 +59,44 @@ async def fetch_provider_models(client: httpx.AsyncClient, provider: Provider):
         "owned_by": provider.provider_type
     } for m in fetched_ids]
 
-# --- NEW: HÀM CẬP NHẬT CACHE ---
+# --- NEW: HÀM CẬP NHẬT CACHE (Đã update logic Group) ---
 async def refresh_model_cache(session: AsyncSession):
     """
-    Hàm này lấy tất cả provider, fetch models thật và lưu vào Redis.
-    Trả về: List Models và Count.
+    Hàm này lấy tất cả provider (raw models) + Model Groups (load balancers)
+    và lưu vào Redis.
     """
     try:
+        # 1. Fetch Raw Models
         result = await session.execute(select(Provider))
         providers = result.scalars().all()
         
-        if not providers:
-            return [], 0
-
-        async with httpx.AsyncClient() as client:
-            tasks = [fetch_provider_models(client, p) for p in providers]
-            res = await asyncio.gather(*tasks)
+        all_models = []
+        if providers:
+            async with httpx.AsyncClient() as client:
+                tasks = [fetch_provider_models(client, p) for p in providers]
+                res = await asyncio.gather(*tasks)
+                all_models = [m for sub in res for m in sub]
         
-        all_models = [m for sub in res for m in sub]
-        final_data = {"object": "list", "data": all_models}
+        # 2. Fetch Model Groups -> THÊM PREFIX group/
+        groups = (await session.execute(select(ModelGroup))).scalars().all()
         
-        # Lưu vào Redis
+        # SỬA DÒNG NÀY: Thêm f"group/{g.id}"
+        group_data = [{
+            "id": f"group/{g.id}", 
+            "object": "model", 
+            "owned_by": "gateway-group",
+            "permission": [] 
+        } for g in groups]
+        
+        # 3. Combine
+        final_list = all_models + group_data
+        final_data = {"object": "list", "data": final_list}
+        
+        # 4. Save to Redis
         if redis_client:
             await redis_client.set("gw:models", json.dumps(final_data), ex=CACHE_TTL)
             
-        return all_models, len(all_models)
+        return final_list, len(final_list)
     except Exception as e:
         print(f"Error refreshing model cache: {e}")
         return [], 0
-
-async def parse_model_alias(raw_model: str, session: AsyncSession):
-    # ... (Giữ nguyên logic cũ của hàm này) ...
-    if not raw_model: raw_model = "gpt-3.5-turbo"
-    stmt_map = select(ModelMap).where(ModelMap.source_model == raw_model)
-    res_map = await session.execute(stmt_map)
-    forward_rule = res_map.scalars().first()
-    if forward_rule: raw_model = forward_rule.target_model
-
-    if "/" not in raw_model:
-        result = await session.execute(select(Provider))
-        providers = result.scalars().all()
-        for p in providers:
-            if p.provider_type in ["openrouter", "gemini", "openai"]: return p, raw_model
-        if providers: return providers[0], raw_model
-        raise HTTPException(400, "Unknown model alias")
-    
-    alias, actual = raw_model.split("/", 1)
-    stmt_provider = select(Provider).where(Provider.name == alias)
-    res_provider = await session.execute(stmt_provider)
-    provider = res_provider.scalars().first()
-    
-    if not provider: raise HTTPException(404, f"Provider '{alias}' not found")
-    return provider, actual

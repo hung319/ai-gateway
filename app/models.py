@@ -1,6 +1,9 @@
 from sqlmodel import Field, SQLModel
 from typing import Optional
+from datetime import datetime
 import time
+
+# --- CONFIG MODELS ---
 
 class Provider(SQLModel, table=True):
     name: str = Field(primary_key=True, index=True) 
@@ -15,7 +18,7 @@ class GatewayKey(SQLModel, table=True):
     is_active: bool = Field(default=True)
     is_hidden: bool = Field(default=False)
     
-    # --- New Fields for Limits ---
+    # Limits
     rate_limit: Optional[int] = Field(default=None, nullable=True)
     usage_limit: Optional[int] = Field(default=None, nullable=True)
 
@@ -24,16 +27,47 @@ class AdminSession(SQLModel, table=True):
     created_at: float = Field(default_factory=lambda: time.time())
     expires_at: float
 
-class ModelMap(SQLModel, table=True):
-    source_model: str = Field(primary_key=True, index=True) # VD: gpt-4
-    target_model: str # VD: openai/gpt-4-turbo
+# --- GROUP MODELS ---
 
-# --- NEW: Bảng lưu log để thống kê Dashboard ---
-class RequestLog(SQLModel, table=True):
+class ModelGroup(SQLModel, table=True):
+    """
+    Nhóm model. ID lưu trong DB là tên gốc (VD: 'gpt-4-ha-noi').
+    Client khi gọi sẽ thêm prefix 'group/' (VD: 'group/gpt-4-ha-noi').
+    """
+    id: str = Field(primary_key=True, index=True) 
+    description: Optional[str] = None
+    balance_strategy: str = Field(default="random") # random, round_robin, weighted
+
+class GroupMember(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    timestamp: float = Field(default_factory=lambda: time.time(), index=True)
-    status: str = Field(index=True) # "success", "fail", "processing"
-    model: str = Field(index=True)
-    provider_name: Optional[str] = None
-    latency: float = 0.0
-    key_name: Optional[str] = None
+    group_id: str = Field(foreign_key="modelgroup.id", index=True)
+    
+    # Model thực tế sẽ gửi tới provider
+    target_model: str 
+    
+    # Provider xử lý
+    provider_name: str = Field(foreign_key="provider.name") 
+    
+    weight: int = Field(default=1)
+
+# --- LOG MODELS (Updated to SQLModel) ---
+
+class RequestLog(SQLModel, table=True):
+    __tablename__ = "request_logs"
+    
+    id: Optional[int] = Field(default=None, primary_key=True, index=True)
+    ts: datetime = Field(default_factory=datetime.utcnow)
+    
+    # Model client gửi lên (VD: group/my-gpt)
+    model: str 
+    
+    # Model thực tế xử lý (VD: openai/gpt-4-turbo) -> MỚI
+    real_model: Optional[str] = Field(default=None, nullable=True)
+    
+    provider_name: Optional[str] = Field(default=None, nullable=True)
+    status: str # success, fail, processing
+    latency: float = Field(default=0.0)
+    input_tokens: int = Field(default=0)
+    output_tokens: int = Field(default=0)
+    ip: Optional[str] = None
+    app_name: Optional[str] = None

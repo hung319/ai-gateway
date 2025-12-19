@@ -1,111 +1,152 @@
 <!DOCTYPE html>
 <html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI Gateway Admin</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="/static/style.css?v={{ ver }}">
-</head>
-<body>
-
-    <div id="loginModal" class="modal hidden">
-        <div class="modal-box">
-            <div style="font-size: 4rem; color: var(--primary); margin-bottom: 15px;"><i class="fa-solid fa-shield-cat"></i></div>
-            <h2 style="color:var(--text-main); margin:0 0 20px 0;">Admin Login</h2>
-            <form id="loginForm">
-                <input type="password" id="mk" placeholder="Master Key..." style="text-align:center; margin-bottom:15px;" required>
-                <button class="btn btn-primary">Access Panel</button>
-            </form>
-            <p id="loginMsg" style="color:var(--danger); display:none; margin-top:10px; font-size:0.9rem">Key sai!</p>
+    <head>
+        <meta charset="UTF-8" />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+        />
+        <title>AI Gateway Admin</title>
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        />
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <link rel="stylesheet" href="/static/style.css?v={{ ver }}" />
+    </head>
+    <body>
+        <div id="loginModal" class="hidden">
+    <div class="login-card">
+        <div class="login-icon">
+            <i class="fa-solid fa-shield-cat"></i>
         </div>
+        <h2 class="login-title">Admin Access</h2>
+        
+        <form id="loginForm">
+            <input
+                type="password"
+                id="mk"
+                class="login-input"
+                placeholder="Enter Master Key"
+                required
+                autocomplete="off"
+            />
+            <button class="btn btn-primary" style="padding: 15px; font-size: 1rem;">
+                Login <i class="fa-solid fa-arrow-right" style="margin-left: 5px"></i>
+            </button>
+        </form>
+        
+        <p id="loginMsg" style="color: var(--danger); margin-top: 15px; font-weight: 600; display: none;">
+            <i class="fa-solid fa-circle-exclamation"></i> Incorrect Key!
+        </p>
     </div>
+</div>
 
-    <div id="app" class="container hidden">
-        <header class="header">
-            <div class="brand"><i class="fa-solid fa-layer-group"></i> AI Gateway</div>
-            <div>
-                <button class="action-btn" onclick="toggleTheme()" title="Theme"><i class="fa-solid fa-moon"></i></button>
-                <button class="action-btn" onclick="logout()" title="Logout" style="color:var(--danger)"><i class="fa-solid fa-power-off"></i></button>
-            </div>
-        </header>
+        <div id="app" class="container hidden">
+            <header class="header">
+                <div class="brand">
+                    <i class="fa-solid fa-layer-group"></i> AI Gateway
+                </div>
+                <div>
+                    <button
+                        class="action-btn"
+                        onclick="toggleTheme()"
+                        title="Theme"
+                    >
+                        <i class="fa-solid fa-moon"></i>
+                    </button>
+                    <button
+                        class="action-btn"
+                        onclick="logout()"
+                        title="Logout"
+                        style="color: var(--danger)"
+                    >
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+                </div>
+            </header>
 
-        <div id="v-overview">
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-val" id="ov_providers">0</div>
-                    <div class="stat-label">Providers</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-val" id="ov_models">0</div>
-                    <div class="stat-label">Models</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-val" id="ov_keys">0</div>
-                    <div class="stat-label">Total API Keys</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-val" id="ov_maps">0</div>
-                    <div class="stat-label">Mappings</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-val" id="ov_requests">0</div>
-                    <div class="stat-label">Total Requests</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-val" id="ov_processing">0</div>
-                    <div class="stat-label" style="color:var(--warning)">Processing</div>
-                </div>
-            </div>
-
-            <div class="grid-2" style="margin-top:20px;">
-                <div class="card" style="height: 100%;">
-                    <h3><i class="fa-solid fa-chart-pie"></i> Top 10 Models</h3>
-                    <div class="fixed-chart-box">
-                        <canvas id="topModelChart"></canvas>
+            <div id="v-overview">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-val" id="ov_providers">0</div>
+                        <div class="stat-label">Providers</div>
                     </div>
-                </div>
-
-                <div class="card" style="height: 100%;">
-                    <h3><i class="fa-solid fa-heart-pulse"></i> Live Requests</h3>
-                    <div id="liveGrid" class="fixed-live-box"></div>
-                    <div class="legend">
-                        <span><span class="sq success"></span> Success</span>
-                        <span><span class="sq fail"></span> Fail</span>
-                        <span><span class="sq process"></span> Process</span>
+                    <div class="stat-card">
+                        <div class="stat-val" id="ov_models">0</div>
+                        <div class="stat-label">Models</div>
                     </div>
-                    <p style="font-size:0.75rem; color:var(--text-muted); margin-top:10px; font-style:italic;">
-                        * Click squares to view details. Order: Old (Left) &rarr; New (Right).
-                    </p>
-                </div>
-            </div>
-        </div>
-
-        <div id="v-config" class="hidden">
-            <div class="grid-2">
-                <div class="card">
-                    <h3><i class="fa-solid fa-server"></i> Providers <span id="pTotal" class="badge-count">0</span></h3>
-                    <form id="pForm">
-                        <div class="grid-2" style="gap:10px; margin-bottom:10px">
-                            <div><label>Alias</label><input type="text" id="p_name" placeholder="gpt" required></div>
-                            <div><label>Type</label>
-                                <select id="p_type" onchange="fillUrl()">
-                                    <option value="openai">OpenAI</option>
-                                    <option value="gemini">Google Gemini</option>
-                                    <option value="openrouter">OpenRouter</option>
-                                    <option value="azure">Azure OpenAI</option>
-                                </select>
-                            </div>
+                    <div class="stat-card">
+                        <div class="stat-val" id="ov_keys">0</div>
+                        <div class="stat-label">Keys</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-val" id="ov_groups">0</div>
+                        <div class="stat-label">Groups</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-val" id="ov_requests">0</div>
+                        <div class="stat-label">Requests</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-val" id="ov_processing">0</div>
+                        <div class="stat-label" style="color: var(--warning)">
+                            Processing
                         </div>
-                        <label>Base URL</label><input type="text" id="p_base" placeholder="https://api.openai.com/v1" style="margin-bottom:10px">
-                        <label>API Key</label><input type="password" id="p_key" required>
-                        <button class="btn btn-primary">Save Provider</button>
-                    </form>
-                    <div style="margin-top:25px">
-                        <div class="search-box">
-                            <i class="fa-solid fa-magnifying-glass"></i>
-                            <input type="search" id="pSearch" placeholder="Search provider alias..." oninput="searchP()">
+                    </div>
+                </div>
+
+                <div class="grid-2" style="margin-top: 20px">
+                    <div class="card" style="height: 100%">
+                        <h3>
+                            <i class="fa-solid fa-chart-pie"></i> Top 10 Models
+                        </h3>
+                        <div class="fixed-chart-box">
+                            <canvas id="topModelChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="card" style="height: 100%">
+                        <h3>
+                            <i class="fa-solid fa-heart-pulse"></i> Live
+                            Requests
+                        </h3>
+                        <div id="liveGrid" class="fixed-live-box"></div>
+                        <div class="legend">
+                            <span
+                                ><span class="sq success"></span> Success</span
+                            >
+                            <span><span class="sq fail"></span> Fail</span>
+                            <span
+                                ><span class="sq process"></span> Process</span
+                            >
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="v-config" class="hidden">
+                <div class="grid-2">
+                    <div class="card">
+                        <div class="card-header-flex">
+                            <h3>
+                                <i class="fa-solid fa-server"></i> Providers
+                                <span id="pTotal" class="badge-count">0</span>
+                            </h3>
+                            <button
+                                class="btn-sm-add"
+                                onclick="openProviderModal()"
+                            >
+                                <i class="fa-solid fa-plus"></i> New
+                            </button>
+                        </div>
+                        <div class="search-box" style="margin-top: 15px">
+                            <i class="fa-solid fa-magnifying-glass"></i
+                            ><input
+                                type="search"
+                                id="pSearch"
+                                placeholder="Search provider..."
+                                oninput="searchP()"
+                            />
                         </div>
                         <div class="table-container">
                             <table>
@@ -120,155 +161,486 @@
                             </table>
                         </div>
                         <div id="pPagination" class="pagination hidden">
-                            <button class="page-btn" onclick="changePage('p', -1)" id="btnPrev_p"><i class="fa-solid fa-chevron-left"></i></button>
-                            <span id="pageInfo_p" class="page-info"></span>
-                            <button class="page-btn" onclick="changePage('p', 1)" id="btnNext_p"><i class="fa-solid fa-chevron-right"></i></button>
+                            <button
+                                class="page-btn"
+                                onclick="changePage('p', -1)"
+                                id="btnPrev_p"
+                            >
+                                <i class="fa-solid fa-chevron-left"></i></button
+                            ><span id="pageInfo_p" class="page-info"></span
+                            ><button
+                                class="page-btn"
+                                onclick="changePage('p', 1)"
+                                id="btnNext_p"
+                            >
+                                <i class="fa-solid fa-chevron-right"></i>
+                            </button>
                         </div>
                     </div>
-                </div>
-                <div class="card" style="height:fit-content">
-                    <h3><i class="fa-solid fa-key"></i> Client Keys</h3>
-                    <form id="kForm">
-                        <label>App Name</label><input type="text" id="k_name" placeholder="Cursor" required style="margin-bottom:10px">
-                        <label>Custom Key</label><input type="text" id="k_cust" placeholder="Leave empty to generate">
-                        <button class="btn btn-success">Create Key</button>
-                    </form>
+
+                    <div class="card" style="height: fit-content">
+                        <h3><i class="fa-solid fa-key"></i> Client Keys</h3>
+                        <form id="kForm">
+                            <label>App Name</label
+                            ><input
+                                type="text"
+                                id="k_name"
+                                placeholder="Cursor"
+                                required
+                                style="margin-bottom: 10px"
+                            />
+                            <label>Custom Key</label
+                            ><input
+                                type="text"
+                                id="k_cust"
+                                placeholder="Leave empty to generate"
+                            />
+                            <button class="btn btn-success">Create Key</button>
+                        </form>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div id="v-models" class="hidden">
-            <div class="card">
-                <h3><i class="fa-solid fa-cubes"></i> Live Models <span id="mTotal" class="badge-count">0</span></h3>
-                <div class="search-box">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                    <input type="search" id="mSearch" placeholder="Search models by alias, real name or full ID..." oninput="searchM()">
-                </div>
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th class="col-mod-alias">Alias</th>
-                                <th class="col-mod-real">Real Name</th>
-                                <th class="col-mod-full">Full ID</th>
-                            </tr>
-                        </thead>
-                        <tbody id="mList">
-                            <tr><td colspan="3" class="text-center" style="padding:20px;">Loading...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div id="mPagination" class="pagination hidden">
-                    <button class="page-btn" onclick="changePage('m', -1)" id="btnPrev_m"><i class="fa-solid fa-chevron-left"></i></button>
-                    <span id="pageInfo_m" class="page-info"></span>
-                    <button class="page-btn" onclick="changePage('m', 1)" id="btnNext_m"><i class="fa-solid fa-chevron-right"></i></button>
-                </div>
-            </div>
-        </div>
-
-        <div id="v-maps" class="hidden">
-            <div class="grid-2">
-                <div class="card" style="height:fit-content">
-                    <h3><i class="fa-solid fa-shuffle"></i> Add Forward Rule</h3>
-                    <form id="mapForm">
-                        <label>Source Alias</label><input type="text" id="map_src" placeholder="e.g. gpt-4" required style="margin-bottom:10px">
-                        <label>Target Model</label><input type="text" id="map_target" placeholder="e.g. openai/gpt-4-turbo" required>
-                        <p style="font-size:0.75rem; color:var(--text-muted); margin-top:5px">Target must be valid: <code>provider/model_name</code></p>
-                        <button class="btn btn-primary">Create Rule</button>
-                    </form>
-                </div>
+            <div id="v-models" class="hidden">
                 <div class="card">
-                    <h3>Current Rules <span id="mapTotal" class="badge-count">0</span></h3>
+                    <h3>
+                        <i class="fa-solid fa-cubes"></i> Live Models
+                        <span id="mTotal" class="badge-count">0</span>
+                    </h3>
+                    <div class="search-box">
+                        <i class="fa-solid fa-magnifying-glass"></i
+                        ><input
+                            type="search"
+                            id="mSearch"
+                            placeholder="Search models..."
+                            oninput="searchM()"
+                        />
+                    </div>
                     <div class="table-container">
                         <table>
                             <thead>
                                 <tr>
-                                    <th style="width:35%">Source</th>
-                                    <th style="width:10%" class="text-center"><i class="fa-solid fa-arrow-right"></i></th>
-                                    <th style="width:35%">Target</th>
-                                    <th style="width:20%" class="text-right">Action</th>
+                                    <th class="col-mod-alias">Alias</th>
+                                    <th class="col-mod-real">Real Name</th>
+                                    <th class="col-mod-full">Full ID</th>
                                 </tr>
                             </thead>
-                            <tbody id="mapList"></tbody>
+                            <tbody id="mList">
+                                <tr>
+                                    <td
+                                        colspan="3"
+                                        class="text-center"
+                                        style="padding: 20px"
+                                    >
+                                        Loading...
+                                    </td>
+                                </tr>
+                            </tbody>
                         </table>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <div id="v-stats" class="hidden">
-            <div class="card">
-                <h3><i class="fa-solid fa-users"></i> Usage Stats <span id="kTotal" class="badge-count">0</span></h3>
-                <div class="search-box">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                    <input type="search" id="kSearch" placeholder="Search by App Name..." oninput="searchK()">
-                </div>
-                <div class="table-container" style="min-height: 250px;">
-                    <table style="width: 100%; border-collapse: collapse;">
-                        <thead>
-                            <tr style="border-bottom: 2px solid var(--border);">
-                                <th class="col-name" style="text-align:left; padding:10px;">App Name</th>
-                                <th class="col-key" style="text-align:left; padding:10px;">API Key</th>
-                                <th class="col-action" style="text-align:right; padding:10px;">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="kList"></tbody>
-                    </table>
-                </div>
-                 <div id="kPagination" class="pagination hidden">
-                    <button class="page-btn" onclick="changePage('k', -1)" id="btnPrev_k"><i class="fa-solid fa-chevron-left"></i></button>
-                    <span id="pageInfo_k" class="page-info"></span>
-                    <button class="page-btn" onclick="changePage('k', 1)" id="btnNext_k"><i class="fa-solid fa-chevron-right"></i></button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <nav class="bottom-nav hidden" id="mainNav">
-        <button class="nav-btn active" onclick="tab('overview')" id="t-overview" title="Overview"><i class="fa-solid fa-chart-line"></i></button>
-        <button class="nav-btn" onclick="tab('config')" id="t-config" title="Config"><i class="fa-solid fa-sliders"></i></button>
-        <button class="nav-btn" onclick="tab('models')" id="t-models" title="Models"><i class="fa-solid fa-box-open"></i></button>
-        <button class="nav-btn" onclick="tab('maps')" id="t-maps" title="Mapping"><i class="fa-solid fa-shuffle"></i></button>
-        <button class="nav-btn" onclick="tab('stats')" id="t-stats" title="Keys & Usage"><i class="fa-solid fa-key"></i></button>
-    </nav>
-
-    <div id="keyModal" class="modal-overlay">
-        <div class="modal-content">
-            <span class="close-modal" onclick="closeKeyModal()">&times;</span>
-            <div class="modal-header">
-                <h2 class="modal-title">Key Details</h2>
-                <i class="fa-solid fa-pen-to-square edit-toggle" onclick="enableEditMode()" id="editBtn" title="Edit"></i>
-            </div>
-            <form id="keyEditForm">
-                <input type="hidden" id="m_key_id">
-                <div class="form-group">
-                    <label class="form-label">App Name</label>
-                    <input type="text" id="m_name" class="form-input" disabled>
-                </div>
-                <div class="grid-2" style="gap:15px">
-                    <div class="form-group">
-                        <label class="form-label">Rate Limit (RPM)</label>
-                        <input type="number" id="m_rate" class="form-input" placeholder="Unlimited" disabled>
-                        <p class="form-helper">Requests per minute</p>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Usage Limit</label>
-                        <input type="number" id="m_quota" class="form-input" placeholder="Unlimited" disabled>
-                        <p class="form-helper">Current Usage: <span id="m_used" style="font-weight:bold; color:var(--primary)">0</span></p>
+                    <div id="mPagination" class="pagination hidden">
+                        <button
+                            class="page-btn"
+                            onclick="changePage('m', -1)"
+                            id="btnPrev_m"
+                        >
+                            <i class="fa-solid fa-chevron-left"></i></button
+                        ><span id="pageInfo_m" class="page-info"></span
+                        ><button
+                            class="page-btn"
+                            onclick="changePage('m', 1)"
+                            id="btnNext_m"
+                        >
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </button>
                     </div>
                 </div>
-                <div id="btnSaveGroup" class="modal-actions hidden">
-                    <button type="button" class="btn" style="background:var(--bg-main); border:1px solid var(--border); color:var(--text-main)" onclick="disableEditMode()">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="saveKeyChanges()">Save Changes</button>
+            </div>
+
+            <div id="v-groups" class="hidden">
+                <div class="card">
+                    <div class="card-header-flex">
+                        <h3 style="margin: 0">
+                            <i class="fa-solid fa-layer-group"></i> Model Groups
+                            <span id="gTotal" class="badge-count">0</span>
+                        </h3>
+                        <button
+                            class="btn-sm-add"
+                            onclick="openCreateGroupModal()"
+                        >
+                            <i class="fa-solid fa-plus"></i> New Group
+                        </button>
+                    </div>
+                    <div class="search-box" style="margin-bottom: 15px">
+                        <i class="fa-solid fa-magnifying-glass"></i
+                        ><input
+                            type="search"
+                            id="gSearch"
+                            placeholder="Search groups..."
+                            oninput="searchGroups()"
+                        />
+                    </div>
+                    <div id="gList" class="group-grid">
+                        <div
+                            style="
+                                padding: 20px;
+                                text-align: center;
+                                color: var(--text-muted);
+                                grid-column: 1 / -1;
+                            "
+                        >
+                            Loading Groups...
+                        </div>
+                    </div>
                 </div>
-            </form>
+            </div>
+
+            <div id="v-stats" class="hidden">
+                <div class="card">
+                    <h3>
+                        <i class="fa-solid fa-users"></i> Usage Stats
+                        <span id="kTotal" class="badge-count">0</span>
+                    </h3>
+                    <div class="search-box">
+                        <i class="fa-solid fa-magnifying-glass"></i
+                        ><input
+                            type="search"
+                            id="kSearch"
+                            placeholder="Search by App Name..."
+                            oninput="searchK()"
+                        />
+                    </div>
+                    <div class="table-container" style="min-height: 250px">
+                        <table style="width: 100%; border-collapse: collapse">
+                            <thead>
+                                <tr
+                                    style="
+                                        border-bottom: 2px solid var(--border);
+                                    "
+                                >
+                                    <th class="col-name">App Name</th>
+                                    <th class="col-key">API Key</th>
+                                    <th class="col-action text-right">
+                                        Actions
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody id="kList"></tbody>
+                        </table>
+                    </div>
+                    <div id="kPagination" class="pagination hidden">
+                        <button
+                            class="page-btn"
+                            onclick="changePage('k', -1)"
+                            id="btnPrev_k"
+                        >
+                            <i class="fa-solid fa-chevron-left"></i></button
+                        ><span id="pageInfo_k" class="page-info"></span
+                        ><button
+                            class="page-btn"
+                            onclick="changePage('k', 1)"
+                            id="btnNext_k"
+                        >
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
 
-    <div id="toast"><i class="fa-solid fa-check"></i> Action Done!</div>
+        <nav class="bottom-nav hidden" id="mainNav">
+            <button
+                class="nav-btn active"
+                onclick="tab('overview')"
+                id="t-overview"
+                title="Overview"
+            >
+                <i class="fa-solid fa-chart-line"></i>
+            </button>
+            <button
+                class="nav-btn"
+                onclick="tab('config')"
+                id="t-config"
+                title="Config"
+            >
+                <i class="fa-solid fa-sliders"></i>
+            </button>
+            <button
+                class="nav-btn"
+                onclick="tab('models')"
+                id="t-models"
+                title="Models"
+            >
+                <i class="fa-solid fa-box-open"></i>
+            </button>
+            <button
+                class="nav-btn"
+                onclick="tab('groups')"
+                id="t-groups"
+                title="Groups"
+            >
+                <i class="fa-solid fa-layer-group"></i>
+            </button>
+            <button
+                class="nav-btn"
+                onclick="tab('stats')"
+                id="t-stats"
+                title="Keys & Usage"
+            >
+                <i class="fa-solid fa-key"></i>
+            </button>
+        </nav>
 
-    <div id="reqDetailPopup" class="req-popup"></div>
+        <div id="providerModal" class="modal-overlay">
+            <div class="modal-content">
+                <span class="close-modal" onclick="closeProviderModal()"
+                    >&times;</span
+                >
+                <div class="modal-header">
+                    <h2 class="modal-title" id="pModalTitle">Provider</h2>
+                </div>
+                <form
+                    id="providerForm"
+                    onsubmit="event.preventDefault(); saveProvider();"
+                >
+                    <input type="hidden" id="pm_is_edit" value="false" />
+                    <div class="form-group">
+                        <label>Alias Name</label
+                        ><input
+                            type="text"
+                            id="pm_name"
+                            placeholder="e.g. gpt, gemini..."
+                            required
+                        />
+                    </div>
+                    <div class="grid-2" style="gap: 10px">
+                        <div class="form-group">
+                            <label>Type</label
+                            ><select id="pm_type" onchange="fillPUrl()">
+                                <option value="openai">OpenAI</option>
+                                <option value="gemini">Google Gemini</option>
+                                <option value="openrouter">OpenRouter</option>
+                                <option value="azure">Azure OpenAI</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Base URL</label
+                            ><input type="text" id="pm_base" />
+                        </div>
+                    </div>
 
-    <script src="/static/script.js?v={{ ver }}"></script>
-</body>
+                    <div class="form-group" style="margin-top: 15px">
+                        <div class="switch-row">
+                            <label
+                                style="margin: 0; cursor: pointer"
+                                onclick="document.getElementById('pm_has_key').click()"
+                                >API Key</label
+                            >
+                            <label class="switch">
+                                <input
+                                    type="checkbox"
+                                    id="pm_has_key"
+                                    checked
+                                    onchange="toggleKeyInput()"
+                                />
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <input
+                            type="password"
+                            id="pm_key"
+                            placeholder="Enter API Key"
+                            style="margin-top: 8px"
+                        />
+                        <p class="form-helper" id="pm_key_help">
+                            Leave blank to keep unchanged.
+                        </p>
+                    </div>
+
+                    <button class="btn btn-primary" style="margin-top: 20px">
+                        Save Provider
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div id="keyModal" class="modal-overlay">
+            <div class="modal-content">
+                <span class="close-modal" onclick="closeKeyModal()"
+                    >&times;</span
+                >
+                <div class="modal-header">
+                    <h2 class="modal-title">Key Details</h2>
+                    <i
+                        class="fa-solid fa-pen-to-square edit-toggle"
+                        onclick="enableEditMode()"
+                        id="editBtn"
+                        title="Edit"
+                    ></i>
+                </div>
+                <form id="keyEditForm">
+                    <input type="hidden" id="m_key_id" />
+                    <div class="form-group">
+                        <label class="form-label">App Name</label
+                        ><input
+                            type="text"
+                            id="m_name"
+                            class="form-input"
+                            disabled
+                        />
+                    </div>
+                    <div class="grid-2" style="gap: 15px">
+                        <div class="form-group">
+                            <label class="form-label">Rate Limit (RPM)</label
+                            ><input
+                                type="number"
+                                id="m_rate"
+                                class="form-input"
+                                placeholder="Unlimited"
+                                disabled
+                            />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Usage Limit</label
+                            ><input
+                                type="number"
+                                id="m_quota"
+                                class="form-input"
+                                placeholder="Unlimited"
+                                disabled
+                            />
+                            <p class="form-helper">
+                                Used:
+                                <span
+                                    id="m_used"
+                                    style="
+                                        font-weight: bold;
+                                        color: var(--primary);
+                                    "
+                                    >0</span
+                                >
+                            </p>
+                        </div>
+                    </div>
+                    <div
+                        id="btnSaveGroup"
+                        class="modal-actions hidden"
+                        style="display: flex; gap: 10px; margin-top: 20px"
+                    >
+                        <button
+                            type="button"
+                            class="btn"
+                            style="
+                                background: var(--bg-main);
+                                border: 1px solid var(--border);
+                                color: var(--text-main);
+                                flex: 1;
+                            "
+                            onclick="disableEditMode()"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            class="btn btn-primary"
+                            style="flex: 1"
+                            onclick="saveKeyChanges()"
+                        >
+                            Save
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="groupModal" class="modal-overlay">
+            <div class="modal-content large-modal">
+                <span class="close-modal" onclick="closeGroupModal()"
+                    >&times;</span
+                >
+                <div class="modal-header">
+                    <h2 class="modal-title" id="groupModalTitle">Edit Group</h2>
+                </div>
+                <div
+                    style="
+                        flex: 1;
+                        overflow-y: auto;
+                        padding-right: 5px;
+                        padding-bottom: 20px;
+                    "
+                >
+                    <form
+                        id="groupForm"
+                        onsubmit="event.preventDefault(); saveGroupInfo();"
+                    >
+                        <div
+                            class="grid-2"
+                            style="gap: 15px; margin-bottom: 15px"
+                        >
+                            <div class="form-group">
+                                <label class="form-label">Group ID</label
+                                ><input
+                                    type="text"
+                                    id="gm_id"
+                                    class="form-input"
+                                    placeholder="e.g. gpt-4-group"
+                                    required
+                                />
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Strategy</label
+                                ><select id="gm_strategy" class="form-input">
+                                    <option value="random">Random</option>
+                                    <option value="round_robin">
+                                        Round Robin
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+                        <button
+                            type="submit"
+                            id="btnSaveGroupInfo"
+                            class="btn btn-primary"
+                            style="width: 100%; margin-bottom: 20px"
+                        >
+                            Save Group Info
+                        </button>
+                    </form>
+                    <div id="gm_edit_sections" class="hidden">
+                        <hr
+                            style="
+                                border: 0;
+                                border-top: 1px solid var(--border);
+                                margin: 0 0 20px 0;
+                            "
+                        />
+                        <h3 style="margin-top: 0">
+                            <i class="fa-solid fa-users-line"></i> Members
+                        </h3>
+                        <div
+                            id="gm_members_list"
+                            style="margin-bottom: 20px"
+                        ></div>
+                        <h3 style="margin-top: 0">
+                            <i class="fa-solid fa-plus-circle"></i> Add Model
+                        </h3>
+                        <div class="search-box">
+                            <i class="fa-solid fa-magnifying-glass"></i
+                            ><input
+                                type="search"
+                                id="gm_add_search"
+                                placeholder="Search available models..."
+                                oninput="searchAddableModels()"
+                            />
+                        </div>
+                        <div id="gm_add_list" class="add-model-list"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="toast"><i class="fa-solid fa-check"></i> Action Done!</div>
+        <div id="reqDetailPopup" class="req-popup"></div>
+        <script src="/static/script.js?v={{ ver }}"></script>
+    </body>
 </html>
