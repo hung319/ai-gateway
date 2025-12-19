@@ -117,6 +117,27 @@ body {
     font-weight: bold;
 }
 
+/* --- UTILITIES --- */
+.text-right {
+    text-align: right !important;
+}
+.text-center {
+    text-align: center !important;
+}
+.text-left {
+    text-align: left !important;
+}
+
+/* Đảm bảo input nằm trong flex group không bị vỡ */
+.input-group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+.input-group input {
+    margin: 0 !important; /* Ghi đè margin mặc định nếu có */
+}
+
 /* --- ANIMATIONS --- */
 @keyframes fadeInUp {
     from {
